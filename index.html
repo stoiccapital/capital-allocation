@@ -2205,7 +2205,7 @@ setInterval(() => {
     if (!def) continue;
     const owned = state.consumption[id];
     const maint = owned.value * def.maint / 100;
-    state.cash -= maint;
+    state.cash = Math.max(0, state.cash - maint);
     let drift = def.appr;
     if (drift > 0) {
       // Decay from $100M (full appr) → $1T (inflation only)
@@ -2218,6 +2218,10 @@ setInterval(() => {
 
   // Inflation on nominal cash
   state.cash *= (1 - INFLATION_PCT / 100);
+
+  // Cash can't go negative — unpaid obligations (consumption maint, etc.) just floor at zero.
+  // The player is effectively insolvent on that line but the system doesn't track micro-debt.
+  if (state.cash < 0) state.cash = 0;
 
   // Insolvency: debt exceeds cash + total asset value → bust
   if (!state.bust && netWorth() < 0) {
