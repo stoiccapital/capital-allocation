@@ -32,28 +32,30 @@
     -webkit-font-smoothing: antialiased;
   }
   .mono { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
-  .wrap { max-width: 1400px; margin: 0 auto; padding: 32px 24px 80px; }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 24px 24px 48px; }
 
-  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; flex-wrap: wrap; margin-bottom: 24px; }
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; margin-bottom: 16px; }
   .title { font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
-  .subtitle { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .subtitle { font-size: 12px; color: var(--muted); margin-top: 3px; }
 
   .strip {
     display: grid;
     grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr auto;
-    gap: 20px;
-    padding: 18px 22px;
+    gap: 16px;
+    padding: 14px 18px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 10px;
-    margin-bottom: 24px;
+    margin-bottom: 12px;
     align-items: center;
   }
   @media (max-width: 900px) { .strip { grid-template-columns: 1fr 1fr; } }
-  .stat .k { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
-  .stat .v { font-size: 18px; font-weight: 500; letter-spacing: -0.01em; }
-  .stat .v.big { font-size: 24px; font-weight: 600; }
+  .stat .k { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+  .stat .v { font-size: 17px; font-weight: 500; letter-spacing: -0.01em; }
+  .stat .v.big { font-size: 22px; font-weight: 600; }
   .stat .v.pos { color: var(--green); }
+  .stat .v.big { transition: color 0.3s; }
+  .stat .v.big.flash { color: var(--green); }
   .dot-s { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
   .dot-s.pe { background: var(--pe); }
   .dot-s.re { background: var(--re); }
@@ -83,7 +85,7 @@
   thead { position: sticky; top: 0; background: var(--surface-2); z-index: 1; }
   thead th {
     text-align: left;
-    padding: 12px 14px;
+    padding: 10px 12px;
     font-weight: 500;
     font-size: 10px;
     letter-spacing: 0.1em;
@@ -103,7 +105,7 @@
   tbody tr:hover { background: rgba(255,255,255,0.02); }
   tbody tr.owned { background: rgba(74, 222, 128, 0.04); }
   tbody tr.owned:hover { background: rgba(74, 222, 128, 0.08); }
-  tbody td { padding: 10px 14px; vertical-align: middle; }
+  tbody td { padding: 8px 12px; vertical-align: middle; }
   tbody td.num { text-align: right; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
   tbody td.actions { text-align: right; white-space: nowrap; }
 
@@ -153,14 +155,14 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 10px;
-    margin-bottom: 16px;
+    margin-bottom: 10px;
     overflow: hidden;
     font-size: 12px;
   }
   .pool-head, .pool-row, .pool-foot {
     display: grid;
     grid-template-columns: 1.6fr 0.9fr 0.9fr 1.8fr auto;
-    gap: 16px;
+    gap: 14px;
     padding: 10px 20px;
     align-items: center;
   }
@@ -218,14 +220,14 @@
   }
   .strategy {
     display: flex;
-    gap: 20px;
+    gap: 16px;
     align-items: center;
     flex-wrap: wrap;
-    padding: 10px 20px;
+    padding: 10px 18px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 10px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     font-size: 12px;
   }
   .strategy .k { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
@@ -256,7 +258,7 @@
 
   .pos { color: var(--green); }
 
-  footer { margin-top: 32px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--muted); letter-spacing: 0.05em; }
+  footer { margin-top: 20px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--muted); letter-spacing: 0.05em; }
   .reset { background: none; border: 1px solid var(--border); color: var(--muted); padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; font-family: inherit; letter-spacing: 0.05em; }
   .reset:hover { color: var(--text); border-color: var(--text); }
   .pause {
@@ -301,7 +303,7 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 3px;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     width: fit-content;
   }
   .view-switch button {
@@ -322,18 +324,18 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 14px 20px;
-    margin-bottom: 16px;
+    padding: 12px 18px;
+    margin-bottom: 12px;
   }
   .chart-header {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
   .chart-title { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
   .chart-current { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 16px; }
-  #chart { width: 100%; height: 200px; display: block; }
+  #chart { width: 100%; height: 180px; display: block; }
   .final-banner {
     margin-top: 24px;
     padding: 20px 24px;
@@ -350,42 +352,504 @@
   .final-banner.bust { border-color: var(--red); }
   .final-banner.bust .nw { color: var(--red); }
   .final-banner.bust .label { color: var(--red); }
+
+  /* ======= How to play intro ======= */
+  .intro-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+    backdrop-filter: blur(8px);
+  }
+  .intro-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px;
+    max-width: 540px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .intro-card h1 {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+  .intro-card .intro-sub {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+  .intro-steps { display: flex; flex-direction: column; gap: 14px; margin-bottom: 24px; }
+  .intro-step { display: flex; gap: 14px; align-items: flex-start; }
+  .intro-step-num {
+    flex-shrink: 0;
+    width: 28px; height: 28px;
+    background: var(--accent);
+    color: #0a0a0a;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .intro-step-text strong { display: block; font-weight: 600; margin-bottom: 2px; font-size: 14px; }
+  .intro-step-text p { font-size: 13px; color: var(--muted); line-height: 1.4; }
+  .intro-start {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: #0a0a0a;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+  }
+  .intro-start:hover { opacity: 0.9; }
+  .help-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+    margin-right: 8px;
+  }
+  .help-btn:hover { color: var(--text); border-color: var(--text); }
+
+  /* ======= Advanced-section expander ======= */
+  .advanced-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    width: 100%;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .advanced-toggle:hover { color: var(--text); border-color: var(--border-2); }
+  .advanced-toggle .caret { font-family: 'JetBrains Mono', monospace; transition: transform 0.2s; }
+  .advanced-toggle.open .caret { transform: rotate(90deg); }
+  .advanced-content { display: none; }
+  .advanced-content.open { display: block; }
+
+  /* ======= Polish: primary buy buttons feel more inviting ======= */
+  button.b.primary {
+    background: var(--accent);
+    color: #0a0a0a;
+    border-color: var(--accent);
+    font-weight: 600;
+    transition: transform 0.08s, opacity 0.15s;
+  }
+  button.b.primary:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+  button.b.primary:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  /* Active tab is more obvious */
+  .tab.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+    border-bottom-width: 2px;
+    font-weight: 600;
+  }
+
+  /* View switch bigger / cleaner */
+  .view-switch {
+    padding: 4px;
+    gap: 4px;
+  }
+  .view-switch button {
+    padding: 10px 24px;
+    font-size: 14px;
+  }
+
+  /* ============ Mobile ============ */
+  @media (max-width: 700px) {
+    .wrap { padding: 12px 10px 32px; }
+
+    header { gap: 10px; margin-bottom: 10px; }
+    .title { font-size: 12px; }
+    .subtitle { font-size: 11px; }
+
+    .strip {
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+    .strip > :last-child { grid-column: 1 / -1; flex-direction: row !important; justify-content: space-between; }
+    .stat .v { font-size: 15px; }
+    .stat .v.big { font-size: 20px; }
+    .stat .k { font-size: 9px; }
+
+    .chart-wrap { padding: 8px 12px; margin-bottom: 10px; }
+    #chart { height: 140px; }
+    .chart-current { font-size: 14px; }
+    .chart-header { flex-direction: column; gap: 4px; align-items: flex-start; }
+    .chart-header > div:last-child { gap: 14px; flex-wrap: wrap; }
+
+    .view-switch { width: 100%; margin-bottom: 10px; }
+    .view-switch button { flex: 1; padding: 9px 10px; font-size: 13px; }
+
+    /* Pool ledger stacks per-pool as cards */
+    .pool-head { display: none; }
+    .pool-row, .pool-foot {
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 10px;
+      padding: 10px 12px;
+    }
+    .pool-row .pool-name { grid-column: 1 / -1; font-size: 13px; }
+    .pool-row > div:nth-child(2)::before { content: 'Debt: '; color: var(--muted); font-size: 10px; }
+    .pool-row > div:nth-child(3)::before { content: 'Avail: '; color: var(--muted); font-size: 10px; }
+    .pool-row > div:nth-child(4) { grid-column: 1 / -1; }
+    .pool-row .actions { grid-column: 1 / -1; justify-content: flex-start; gap: 8px; }
+    .pool-row .actions .b { padding: 10px 14px; font-size: 12px; flex: 1; }
+    .pool-foot { grid-template-columns: 1fr auto; }
+
+    .strategy {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      padding: 10px 12px;
+    }
+    .strategy .prio-list { flex-wrap: wrap; }
+    .prio-item { flex: 1; min-width: 90px; justify-content: center; padding: 10px 8px; }
+
+    /* Tabs row — allow horizontal scroll, keep deploy button accessible */
+    .tabs { flex-wrap: wrap; }
+    .tab { padding: 10px 12px; font-size: 12px; }
+    .tab .count { display: none; }
+    #deploy-btn { padding: 10px 14px; font-size: 12px; }
+    #deploy-flash { display: none; }
+
+    /* Hurdle / auto controls */
+    #hurdle-wrap, #auto-pc-wrap { font-size: 11px; }
+    #pc-hurdle { width: 44px; }
+
+    /* ====== Mobile tables: card layout ====== */
+    .table-scroll { overflow-x: hidden; -webkit-overflow-scrolling: touch; max-height: 70vh; }
+    table { display: block; min-width: 0; width: 100%; }
+    thead { display: none; }
+    tbody { display: block; }
+    tbody tr {
+      display: block;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      background: transparent;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr.owned {
+      background: rgba(74, 222, 128, 0.06);
+      border-left: 3px solid var(--green);
+      padding-left: 11px;
+    }
+    /* Default: all cells hidden on mobile; specific nth-child rules below opt in. */
+    tbody td { border: none; padding: 0; display: none; }
+
+    /* Title cell style (set per-tab below) */
+    .m-title {
+      display: block !important;
+      font-weight: 600 !important;
+      font-size: 15px !important;
+      margin-bottom: 6px !important;
+      line-height: 1.25 !important;
+      text-align: left !important;
+    }
+    .m-title .pill { display: none; }
+    .m-title .ticker { font-weight: 700; margin-right: 6px; color: var(--muted); font-size: 12px; }
+    .m-title .name { font-weight: 600; }
+
+    /* Data chip style (set per-tab below) */
+    .m-chip {
+      display: inline-flex !important;
+      align-items: baseline;
+      gap: 4px;
+      margin-right: 14px;
+      font-size: 13px;
+      line-height: 1.4;
+      text-align: left !important;
+    }
+    .m-chip::before {
+      color: var(--muted);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 500;
+      margin-right: 2px;
+    }
+
+    /* Actions row — full-width buttons at bottom of card */
+    tbody td.actions {
+      display: flex !important;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 0;
+      flex-wrap: wrap;
+      text-align: left !important;
+    }
+    tbody td.actions .b {
+      flex: 1;
+      min-height: 42px;
+      padding: 10px;
+      font-size: 13px;
+      min-width: 100px;
+    }
+    tbody td.actions .b:not(.primary):not(.sell) { display: none; }
+
+    /* -------- Stocks (eq): show cols 2 (Name), 5 (Price), 8 (Return), 11 (Earning) -------- */
+    table[data-tab="eq"] tbody td:nth-child(2) {
+      display: block !important;
+      font-weight: 600; font-size: 15px; margin-bottom: 6px; line-height: 1.25;
+    }
+    table[data-tab="eq"] tbody td:nth-child(5),
+    table[data-tab="eq"] tbody td:nth-child(8),
+    table[data-tab="eq"] tbody td:nth-child(11) {
+      display: inline-flex !important;
+      align-items: baseline; gap: 4px; margin-right: 14px; font-size: 13px;
+    }
+    table[data-tab="eq"] tbody td:nth-child(5)::before { content: 'Price'; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 2px; }
+    table[data-tab="eq"] tbody td:nth-child(8)::before { content: 'Return/yr'; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 2px; }
+    table[data-tab="eq"] tbody td:nth-child(11)::before { content: 'Earning'; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 2px; }
+    table[data-tab="eq"] tbody td:nth-child(12) { display: flex !important; }
+
+    /* -------- Houses (re): show cols 1 (Name), 4 (Cost), 7 (Return), 9 (Rent) -------- */
+    table[data-tab="re"] tbody td:nth-child(1) {
+      display: block !important;
+      font-weight: 600; font-size: 15px; margin-bottom: 6px; line-height: 1.25;
+    }
+    table[data-tab="re"] tbody td:nth-child(4),
+    table[data-tab="re"] tbody td:nth-child(7),
+    table[data-tab="re"] tbody td:nth-child(9) {
+      display: inline-flex !important;
+      align-items: baseline; gap: 4px; margin-right: 14px; font-size: 13px;
+    }
+    table[data-tab="re"] tbody td:nth-child(4)::before { content: 'Price'; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 2px; }
+    table[data-tab="re"] tbody td:nth-child(7)::before { content: 'Return/yr'; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 2px; }
+    table[data-tab="re"] tbody td:nth-child(9)::before { content: 'Rent/yr'; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 2px; }
+    table[data-tab="re"] tbody td:nth-child(10) { display: flex !important; }
+
+    /* -------- Businesses (pc): show cols 1 (Name), 3 (Cost), 4 (Return), 8 (Profit) -------- */
+    table[data-tab="pc"] tbody td:nth-child(1) {
+      display: block !important;
+      font-weight: 600; font-size: 15px; margin-bottom: 6px; line-height: 1.25;
+    }
+    table[data-tab="pc"] tbody td:nth-child(3),
+    table[data-tab="pc"] tbody td:nth-child(4),
+    table[data-tab="pc"] tbody td:nth-child(8) {
+      display: inline-flex !important;
+      align-items: baseline; gap: 4px; margin-right: 14px; font-size: 13px;
+    }
+    table[data-tab="pc"] tbody td:nth-child(3)::before { content: 'Price'; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 2px; }
+    table[data-tab="pc"] tbody td:nth-child(4)::before { content: 'Return/yr'; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 2px; }
+    table[data-tab="pc"] tbody td:nth-child(8)::before { content: 'Profit/yr'; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 2px; }
+    table[data-tab="pc"] tbody td:nth-child(9) { display: flex !important; }
+
+    /* -------- Consumption: show 1 (Thing), 3 (Price), 4 (Yearly), 6 (Worth) -------- */
+    #consume-table tbody td:nth-child(1) {
+      display: block !important;
+      font-weight: 600; font-size: 15px; margin-bottom: 6px; line-height: 1.25;
+    }
+    #consume-table tbody td:nth-child(3),
+    #consume-table tbody td:nth-child(4),
+    #consume-table tbody td:nth-child(6) {
+      display: inline-flex !important;
+      align-items: baseline; gap: 4px; margin-right: 14px; font-size: 13px;
+    }
+    #consume-table tbody td:nth-child(3)::before { content: 'Price'; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 2px; }
+    #consume-table tbody td:nth-child(4)::before { content: 'Costs/yr'; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 2px; }
+    #consume-table tbody td:nth-child(6)::before { content: 'Worth'; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 2px; }
+    #consume-table tbody td:nth-child(7) { display: flex !important; }
+
+    /* ---------- Header mode/speed/pause row ---------- */
+    /* Keep mode/speed/pause but shrink them so they fit on one line */
+    .mode { padding: 2px; }
+    .mode button { padding: 7px 8px; font-size: 10px; }
+    .pause { padding: 8px 12px; font-size: 11px; min-width: 60px; }
+    .strip > :last-child > div:last-child { flex-wrap: wrap; gap: 6px; }
+
+    /* ---------- Reset + Help buttons ---------- */
+    .help-btn { width: 36px; height: 36px; font-size: 16px; }
+    .reset { padding: 8px 14px; font-size: 11px; }
+
+    /* ---------- Tabs row — stack cleanly ---------- */
+    /* The outer flex (tabs | controls) stacks: tabs on top, controls below */
+    .tabs { width: 100%; order: 1; }
+    .tabs + div { width: 100%; order: 2; justify-content: space-between !important; margin: 10px 0 0 0 !important; flex-wrap: wrap; gap: 8px; }
+
+    /* Hurdle + auto-deploy controls — full width, large, obvious */
+    #hurdle-wrap, #auto-pc-wrap {
+      width: 100%;
+      display: flex !important;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface-2);
+      border: 1px solid var(--border-2);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--text);
+      gap: 8px;
+    }
+    #hurdle-wrap { flex-wrap: nowrap; }
+    #hurdle-wrap > :nth-child(1) { color: var(--text); font-weight: 500; flex: 1; }
+    #hurdle-wrap > :last-child { color: var(--muted); font-size: 12px; }
+    #pc-hurdle { width: 60px; padding: 8px 8px; font-size: 14px; text-align: center; font-weight: 600; }
+    #auto-pc-wrap { font-size: 13px; font-weight: 500; cursor: pointer; }
+    #auto-pc-wrap input { width: 18px; height: 18px; }
+
+    /* ---------- Consumption filter ---------- */
+    #consume-filter { align-self: stretch; display: flex; }
+    #consume-filter button { flex: 1; padding: 10px 6px; font-size: 11px; min-height: 36px; }
+
+    /* ---------- Minimum touch targets (44px) ---------- */
+    .tab { min-height: 44px; display: flex; align-items: center; padding: 10px 12px; }
+
+    /* ---------- Help overlay — scroll on short screens, bigger text ---------- */
+    .intro-card { padding: 22px; }
+    .intro-card h1 { font-size: 20px; }
+    .intro-step-text strong { font-size: 13px; }
+    .intro-step-text p { font-size: 12px; }
+    .intro-step-num { width: 24px; height: 24px; font-size: 11px; }
+    .intro-start { padding: 14px; font-size: 14px; min-height: 48px; }
+
+    /* ---------- Final banner ---------- */
+    .final-banner .nw { font-size: 20px; }
+    .final-banner .label { font-size: 10px; }
+
+    /* ---------- Chart: lower height so content fits ---------- */
+    #chart { height: 140px; }
+  }
+
+  /* ---------- Extra-narrow phones (< 380px) ---------- */
+  @media (max-width: 380px) {
+    .wrap { padding: 12px 8px 32px; }
+    .mode button { padding: 6px 6px; font-size: 9px; }
+    .pause { padding: 7px 10px; font-size: 10px; min-width: 52px; }
+    .intro-card { padding: 16px; }
+    tbody td { font-size: 11px; padding: 8px 4px; }
+    tbody td.actions .b { padding: 6px 4px; font-size: 10px; }
+    .stat .v.big { font-size: 18px; }
+  }
+
+    /* Consumption summary stacks */
+    #consume-summary { font-size: 12px; }
+    #consume-filter button { padding: 8px 10px; font-size: 11px; }
+
+    /* Final banner */
+    .final-banner { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .final-banner .nw { font-size: 22px; }
+
+    /* Mode + speed buttons */
+    .mode button { padding: 8px 10px; font-size: 11px; }
+    .pause { padding: 10px 14px; font-size: 12px; }
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <div>
-      <div class="title">Allocator</div>
-      <div class="subtitle">1 second = 1 year</div>
+      <div class="title">Money Game</div>
+      <div class="subtitle">Every second = one year of your life</div>
     </div>
-    <button class="reset" onclick="resetGame()">Reset</button>
+    <div style="display:flex;align-items:center;">
+      <button class="help-btn" onclick="showIntro()" title="How to play">?</button>
+      <button class="reset" onclick="resetGame()">Reset</button>
+    </div>
   </header>
+
+  <div id="intro-overlay" class="intro-overlay" style="display:none;">
+    <div class="intro-card">
+      <h1>How to play</h1>
+      <div class="intro-sub">You have <strong>$ 100 000</strong>. Grow it as much as you can.</div>
+
+      <div class="intro-steps">
+        <div class="intro-step">
+          <div class="intro-step-num">1</div>
+          <div class="intro-step-text">
+            <strong>Buy things that make money</strong>
+            <p>Stocks pay you a tiny bit every year. Houses pay you rent. Businesses give you their profits. Pick a tab and click <strong>Buy</strong>.</p>
+          </div>
+        </div>
+        <div class="intro-step">
+          <div class="intro-step-num">2</div>
+          <div class="intro-step-text">
+            <strong>Press Play (top right of this box)</strong>
+            <p>Time starts moving. Every second in real life = one year in the game. You can speed it up with <strong>10×</strong> or <strong>100×</strong>.</p>
+          </div>
+        </div>
+        <div class="intro-step">
+          <div class="intro-step-num">3</div>
+          <div class="intro-step-text">
+            <strong>Your money grows by itself</strong>
+            <p>Earnings pile up in your bank. Use them to buy more things. More things earn more money. This is called <em>compounding</em>, and it's magic.</p>
+          </div>
+        </div>
+        <div class="intro-step">
+          <div class="intro-step-num">4</div>
+          <div class="intro-step-text">
+            <strong>Watch out for crashes</strong>
+            <p>Markets crash every few years. Prices drop. Don't borrow too much money — if you borrow a lot and prices crash, the bank takes your stuff and you can go broke.</p>
+          </div>
+        </div>
+        <div class="intro-step">
+          <div class="intro-step-num">5</div>
+          <div class="intro-step-text">
+            <strong>Spend some on fun stuff</strong>
+            <p>Click <strong>Buying stuff</strong> at the top to spend money on cars, art, watches, houses. Some lose value (yachts). Some grow in value (Patek watches, Ferraris, Picassos).</p>
+          </div>
+        </div>
+      </div>
+
+      <button class="intro-start" onclick="dismissIntro()">Let's play</button>
+    </div>
+  </div>
 
   <div class="strip">
     <div class="stat">
-      <div class="k">Cash</div>
+      <div class="k">Money in bank</div>
       <div class="v mono big" id="cash">$ 100 k</div>
     </div>
     <div class="stat">
-      <div class="k">Net annual income</div>
+      <div class="k">Earn per year</div>
       <div class="v mono pos" id="annual">$ 0</div>
       <div class="sub mono" id="interest-note" style="color: var(--muted); font-size: 10px; margin-top: 2px; min-height: 12px;"></div>
     </div>
     <div class="stat">
-      <div class="k"><span class="dot-s pe"></span>Dividends</div>
+      <div class="k"><span class="dot-s pe"></span>From stocks</div>
       <div class="v mono" id="inc-pe">$ 0</div>
       <div class="sub mono" id="eq-val" style="color: var(--muted); font-size: 10px; margin-top: 2px;"></div>
       <div class="sub mono" id="pe-note" style="color: var(--red); font-size: 10px; min-height: 12px;"></div>
     </div>
     <div class="stat">
-      <div class="k"><span class="dot-s re"></span>Rent</div>
+      <div class="k"><span class="dot-s re"></span>From houses</div>
       <div class="v mono" id="inc-re">$ 0</div>
       <div class="sub mono" id="re-val" style="color: var(--muted); font-size: 10px; margin-top: 2px;"></div>
       <div class="sub mono" id="crash-note" style="color: var(--red); font-size: 10px; min-height: 12px;"></div>
     </div>
     <div class="stat">
-      <div class="k"><span class="dot-s pc"></span>Holding FCF</div>
+      <div class="k"><span class="dot-s pc"></span>From businesses</div>
       <div class="v mono" id="inc-pc">$ 0</div>
       <div class="sub mono" id="pc-val" style="color: var(--muted); font-size: 10px; margin-top: 2px; min-height: 12px;"></div>
     </div>
@@ -412,26 +876,33 @@
 
   <div class="chart-wrap">
     <div class="chart-header">
-      <div class="chart-title">Net worth over time</div>
+      <div class="chart-title">How your money grows</div>
       <div style="display:flex;gap:24px;align-items:baseline;">
-        <div><span class="chart-title" style="margin-right:6px;">CAGR</span><span class="chart-current mono" id="chart-cagr">—</span></div>
-        <div><span class="chart-title" style="margin-right:6px;">Net worth</span><span class="chart-current mono" id="chart-current">$ 0</span></div>
+        <div><span class="chart-title" style="margin-right:6px;">Yearly growth</span><span class="chart-current mono" id="chart-cagr">—</span></div>
+        <div><span class="chart-title" style="margin-right:6px;">Total money</span><span class="chart-current mono" id="chart-current">$ 0</span></div>
       </div>
     </div>
     <svg id="chart" viewBox="0 0 1000 250" preserveAspectRatio="none"></svg>
   </div>
 
   <div class="view-switch" id="view-switch">
-    <button data-view="invest" onclick="setView('invest')">Investment</button>
-    <button data-view="consume" onclick="setView('consume')">Consumption</button>
+    <button data-view="invest" onclick="setView('invest')">Investing</button>
+    <button data-view="consume" onclick="setView('consume')">Buying stuff</button>
   </div>
+
+  <button class="advanced-toggle" id="advanced-toggle" onclick="toggleAdvanced()">
+    <span>⚙  Borrow money & auto-invest settings</span>
+    <span class="caret">›</span>
+  </button>
+
+  <div class="advanced-content" id="advanced-content">
 
   <div class="pool-ledger" id="pool-ledger">
     <div class="pool-head">
-      <div>Pool</div><div>Debt</div><div>Available</div><div>Max LTV</div><div style="text-align:right;">Actions</div>
+      <div>Loan type</div><div>You owe</div><div>You can borrow</div><div>Max loan size</div><div style="text-align:right;"></div>
     </div>
     <div class="pool-row" data-pool="Eq">
-      <div class="pool-name"><span class="dot-s pe"></span>Equities <span class="pool-sub">securities margin</span></div>
+      <div class="pool-name"><span class="dot-s pe"></span>Loan on stocks</div>
       <div class="v mono debt" id="debt-Eq">$ 0</div>
       <div class="v mono" id="max-Eq">$ 0</div>
       <div style="display:flex;align-items:center;gap:10px;">
@@ -444,7 +915,7 @@
       </div>
     </div>
     <div class="pool-row" data-pool="Re">
-      <div class="pool-name"><span class="dot-s re"></span>Real estate <span class="pool-sub">mortgage</span></div>
+      <div class="pool-name"><span class="dot-s re"></span>Loan on houses</div>
       <div class="v mono debt" id="debt-Re">$ 0</div>
       <div class="v mono" id="max-Re">$ 0</div>
       <div style="display:flex;align-items:center;gap:10px;">
@@ -457,7 +928,7 @@
       </div>
     </div>
     <div class="pool-row" data-pool="Pc">
-      <div class="pool-name"><span class="dot-s pc"></span>Holding <span class="pool-sub">corporate loan</span></div>
+      <div class="pool-name"><span class="dot-s pc"></span>Loan on businesses</div>
       <div class="v mono debt" id="debt-Pc">$ 0</div>
       <div class="v mono" id="max-Pc">$ 0</div>
       <div style="display:flex;align-items:center;gap:10px;">
@@ -470,39 +941,41 @@
       </div>
     </div>
     <div class="pool-foot">
-      <div class="k">Rate · Inflation</div>
+      <div class="k">Interest you pay · Money loses value</div>
       <div class="v mono" id="rates">6.0 % · 2.0 %</div>
     </div>
   </div>
 
   <div class="strategy">
-    <div class="k">Priority — click to promote</div>
+    <div class="k">Where my money goes first (tap to move up)</div>
     <div class="prio-list" id="prio-list"></div>
     <label>
       <input type="checkbox" id="auto-borrow-input" onchange="toggleAutoBorrow()" />
-      Auto borrow to max
+      Borrow money automatically
     </label>
   </div>
 
+  </div><!-- /advanced-content -->
+
   <div id="final-banner" class="final-banner" style="display:none;margin-top:0;margin-bottom:24px;">
     <div>
-      <div class="label">100 years allocated — final net worth</div>
+      <div class="label">100 years played — total money at the end</div>
       <div class="nw mono" id="final-nw">$ 0</div>
     </div>
-    <button class="reset" onclick="resetGame()" style="padding: 10px 18px; font-size: 12px;">Play again</button>
+    <button class="reset" onclick="resetGame()" style="padding: 10px 18px; font-size: 12px;">Try again</button>
   </div>
 
   <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--border);">
     <div class="tabs" id="tabs" style="border-bottom:none;"></div>
     <div style="display:flex;align-items:center;gap:12px;margin: 0 6px 8px 0;">
       <label id="hurdle-wrap" style="display:none;align-items:center;gap:6px;font-size:12px;color:var(--muted);letter-spacing:0.03em;">
-        Hurdle
+        Only buy if it pays
         <input type="number" id="pc-hurdle" min="0" max="100" step="1" style="width:52px;background:var(--surface-2);border:1px solid var(--border-2);color:var(--text);padding:4px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;" onchange="setHurdle()" />
-        <span>%</span>
+        <span>% or more</span>
       </label>
       <label id="auto-pc-wrap" style="display:none;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer;letter-spacing:0.03em;">
         <input type="checkbox" id="auto-pc" onchange="toggleAuto()" />
-        Auto deploy
+        Buy automatically
       </label>
       <button class="b primary" id="deploy-btn" style="display:none;">Deploy max</button>
       <span id="deploy-flash" style="font-size:11px;color:var(--muted);letter-spacing:0.03em;min-width:140px;opacity:0;transition:opacity 0.2s;"></span>
@@ -519,12 +992,12 @@
 
   <div id="consume-section" style="display:none;">
     <div class="strategy" style="margin-bottom:16px;">
-      <div class="k">Lifestyle portfolio</div>
+      <div class="k">Stuff I bought</div>
       <div id="consume-summary" class="mono" style="font-size:13px;"></div>
       <div class="mode" id="consume-filter" style="margin-left:auto;">
-        <button data-g="all" onclick="setConsumeFilter('all')">All</button>
-        <button data-g="M"   onclick="setConsumeFilter('M')">For him</button>
-        <button data-g="F"   onclick="setConsumeFilter('F')">For her</button>
+        <button data-g="all" onclick="setConsumeFilter('all')">Everything</button>
+        <button data-g="M"   onclick="setConsumeFilter('M')">For boys</button>
+        <button data-g="F"   onclick="setConsumeFilter('F')">For girls</button>
       </div>
     </div>
     <div class="table-wrap">
@@ -532,12 +1005,12 @@
         <table id="consume-table">
           <thead>
             <tr>
-              <th>Item</th>
-              <th>Category</th>
+              <th>Thing</th>
+              <th>Kind</th>
               <th class="num">Price</th>
-              <th class="num">Maint/yr</th>
-              <th class="num">Appr./yr</th>
-              <th class="num">Owned value</th>
+              <th class="num">Yearly cost</th>
+              <th class="num">Grows %/yr</th>
+              <th class="num">Worth now</th>
               <th></th>
             </tr>
           </thead>
@@ -548,7 +1021,7 @@
   </div>
 
   <footer>
-    <span>Save is automatic. Catalog is deterministic per seed.</span>
+    <span>Your game saves itself. Same stocks, houses, and businesses every time.</span>
   </footer>
 </div>
 
@@ -959,6 +1432,11 @@ function ensurePrices() {
     const maxRent = RE_VALUE_CAP * p.yieldPct / 100;
     if (state.rePrice[p.id] > RE_VALUE_CAP) state.rePrice[p.id] = RE_VALUE_CAP;
     if (state.reRent[p.id] > maxRent) state.reRent[p.id] = maxRent;
+    // Repair prices that previous (too-severe) crash model drove toward zero.
+    if (state.rePrice[p.id] < p.price * 0.2) state.rePrice[p.id] = p.price * 0.2;
+    // Repair rents that diverged above 2x base yield (prior unbounded compounding).
+    const yieldCap = state.rePrice[p.id] * (p.yieldPct * 2) / 100;
+    if (state.reRent[p.id] > yieldCap) state.reRent[p.id] = yieldCap;
   }
   for (const id in state.re) {
     const p = PROPERTIES.find(x => x.id === id);
@@ -987,8 +1465,10 @@ function resetGame() {
   if (!confirm('Reset the game? All progress will be lost.')) return;
   state = defaultState();
   ensurePrices();
+  _lastCashShown = null;
   saveState();
   render();
+  restartTick();  // restart timer at fresh speed (1x)
 }
 
 let state = loadState();
@@ -1153,6 +1633,8 @@ function upgradeCost(annual) { return Math.round(annual * upgradeMultiplier(annu
 
 // Implied market value for a (grown) property, by own-yield cap rate
 function reValue(p, annual) { return annual / (p.yieldPct / 100); }
+function reMaxAnnual(p) { return RE_VALUE_CAP * p.yieldPct / 100; }
+function reIsAtCap(p, annual) { return annual >= reMaxAnnual(p) * 0.995; }
 
 // Holdco valuation multiple: 3× to 20× on total free cashflow (log scale, $100k → $1B+).
 // Reflects diversification + scale premium of a larger holding.
@@ -1186,9 +1668,9 @@ function pcGrowCost(annual) {
 
 // ------- Tabs -------
 const TABS = [
-  { id: 'eq', label: 'Public Equities', dot: 'pe', count: () => EQUITIES.length },
-  { id: 're', label: 'Real Estate',     dot: 're', count: () => PROPERTIES.length },
-  { id: 'pc', label: 'Private (Holding)', dot: 'pc', count: () => COMPANIES.length },
+  { id: 'eq', label: 'Stocks',     dot: 'pe', count: () => EQUITIES.length },
+  { id: 're', label: 'Houses',     dot: 're', count: () => PROPERTIES.length },
+  { id: 'pc', label: 'Businesses', dot: 'pc', count: () => COMPANIES.length },
 ];
 
 function renderTabs() {
@@ -1204,9 +1686,9 @@ function renderTabs() {
   const dbtn = document.getElementById('deploy-btn');
   if (dbtn) {
     const map = {
-      eq: { label: 'Deploy max → Equities',    fn: maxDeployEq },
-      re: { label: 'Deploy max → Real Estate', fn: maxDeployRe },
-      pc: { label: 'Deploy max → Holding',     fn: maxDeployPc },
+      eq: { label: 'Buy the best stocks',    fn: maxDeployEq },
+      re: { label: 'Buy the best houses',    fn: maxDeployRe },
+      pc: { label: 'Buy the best businesses', fn: maxDeployPc },
     };
     const m = map[state.tab];
     if (m) { dbtn.style.display = ''; dbtn.textContent = m.label; dbtn.onclick = m.fn; }
@@ -1246,40 +1728,40 @@ function setHurdle() {
 // ------- Columns -------
 const COLS = {
   eq: [
-    { k: 'ticker', label: 'Ticker', num: false },
-    { k: 'name', label: 'Name', num: false },
-    { k: 'sector', label: 'Sector', num: false },
-    { k: 'mcap', label: 'Mkt Cap', num: true },
-    { k: 'price', label: 'Price', num: true },
-    { k: 'yield', label: 'Yield', num: true },
-    { k: 'appr', label: 'Appr./yr', num: true },
-    { k: 'roi', label: 'ROI/yr', num: true },
-    { k: 'shares', label: 'Shares', num: true },
+    { k: 'ticker', label: 'Code', num: false },
+    { k: 'name', label: 'Company', num: false },
+    { k: 'sector', label: 'Kind', num: false },
+    { k: 'mcap', label: 'Company size', num: true },
+    { k: 'price', label: 'Price per share', num: true },
+    { k: 'yield', label: 'Pays %/yr', num: true },
+    { k: 'appr', label: 'Grows %/yr', num: true },
+    { k: 'roi', label: 'Total return/yr', num: true },
+    { k: 'shares', label: 'Shares I own', num: true },
     { k: 'tax', label: 'Tax', num: true },
-    { k: 'inc', label: 'Income/yr', num: true },
+    { k: 'inc', label: 'Money/yr', num: true },
     { k: 'act', label: '', num: false, noSort: true },
   ],
   re: [
-    { k: 'name', label: 'Property', num: false },
+    { k: 'name', label: 'House', num: false },
     { k: 'city', label: 'City', num: false },
-    { k: 'type', label: 'Type', num: false },
+    { k: 'type', label: 'Kind', num: false },
     { k: 'cost', label: 'Cost', num: true },
-    { k: 'yieldPct', label: 'Yield', num: true },
-    { k: 'appr', label: 'Appr./yr', num: true },
-    { k: 'roi', label: 'ROI/yr', num: true },
-    { k: 'level', label: 'Lvl', num: true },
+    { k: 'yieldPct', label: 'Pays %/yr', num: true },
+    { k: 'appr', label: 'Grows %/yr', num: true },
+    { k: 'roi', label: 'Total return/yr', num: true },
+    { k: 'level', label: 'Level', num: true },
     { k: 'annual', label: 'Rent/yr', num: true },
     { k: 'act', label: '', num: false, noSort: true },
   ],
   pc: [
-    { k: 'name', label: 'Company', num: false },
+    { k: 'name', label: 'Business', num: false },
     { k: 'industry', label: 'Industry', num: false },
     { k: 'cost', label: 'Cost', num: true },
-    { k: 'roi', label: 'ROI/yr', num: true },
-    { k: 'marginPct', label: 'Margin', num: true },
+    { k: 'roi', label: 'Return/yr', num: true },
+    { k: 'marginPct', label: 'Profit %', num: true },
     { k: 'size', label: 'Size', num: true },
-    { k: 'level', label: 'Lvl', num: true },
-    { k: 'annual', label: 'EBITDA/yr', num: true },
+    { k: 'level', label: 'Level', num: true },
+    { k: 'annual', label: 'Profit/yr', num: true },
     { k: 'act', label: '', num: false, noSort: true },
   ],
 };
@@ -1321,6 +1803,8 @@ function renderHead() {
 function renderBody() {
   const tbody = document.getElementById('tbody');
   const tab = state.tab;
+  const mainTable = document.getElementById('main-table');
+  if (mainTable) mainTable.dataset.tab = tab;
 
   if (tab === 'eq') {
     const rows = EQUITIES.map(e => {
@@ -1377,7 +1861,7 @@ function renderBody() {
       const annual = owned ? owned.annual : state.reRent[p.id];
       const level = owned ? owned.level : 0;
       const value = owned ? reValue(p, annual) : market;
-      const atCap = owned && value >= RE_VALUE_CAP;
+      const atCap = owned && reIsAtCap(p, annual);
       const cost = owned ? upgradeCost(annual) : market;
       const appr = reAppr(p.yieldPct);
       // For owned: effective yield stays at base (rent and value grow together).
@@ -1391,7 +1875,7 @@ function renderBody() {
     const sorted = sortRows('re', rows);
     tbody.innerHTML = sorted.map(p => {
       const owned = p.level > 0;
-      const label = owned ? (p.atCap ? 'Max value' : 'Grow') : 'Buy';
+      const label = owned ? (p.atCap ? 'Biggest it can be' : 'Make bigger') : 'Buy';
       const disabled = p.atCap || state.cash < p.cost;
       return `
       <tr class="${owned ? 'owned' : ''}">
@@ -1441,7 +1925,7 @@ function renderBody() {
     const sorted = [...sortedOwned, ...sortedUnowned];
     tbody.innerHTML = sorted.map(c => {
       const owned = c.level > 0;
-      const label = owned ? (c.atCap ? 'Max size' : 'Grow') : 'Acquire';
+      const label = owned ? (c.atCap ? 'Biggest it can be' : 'Make bigger') : 'Buy';
       const disabled = c.atCap || state.cash < c.cost;
       return `
       <tr class="${owned ? 'owned' : ''}">
@@ -1474,8 +1958,16 @@ function netWorth() {
   return state.cash + assetValue() + consumptionValue() - totalDebt();
 }
 
+let _lastCashShown = null;
 function renderStrip() {
-  document.getElementById('cash').textContent = fmtCash(state.cash);
+  const cashEl = document.getElementById('cash');
+  const newCashText = fmtCash(state.cash);
+  if (_lastCashShown != null && state.cash > _lastCashShown + 1) {
+    cashEl.classList.add('flash');
+    setTimeout(() => cashEl.classList.remove('flash'), 350);
+  }
+  _lastCashShown = state.cash;
+  cashEl.textContent = newCashText;
   const ipe = eqIncome(), ire = reIncome(), ipc = pcIncome();
   const gross = ipe + ire + ipc;
   const interest = totalDebt() * state.rate / 100;
@@ -1495,8 +1987,8 @@ function renderStrip() {
   const pen = document.getElementById('pe-note');
   if (pen) {
     const parts = [];
-    if (state.lastEqCrash) parts.push(`crash y+${state.lastEqCrash.year}  −${state.lastEqCrash.pct} %`);
-    if (state.lastMarginCall) parts.push(`margin call y+${state.lastMarginCall.year} · liquidated ${fmtCash(state.lastMarginCall.soldValue)}`);
+    if (state.lastEqCrash) parts.push(`stocks crashed year ${state.lastEqCrash.year}  −${state.lastEqCrash.pct} %`);
+    if (state.lastMarginCall) parts.push(`bank sold my stocks year ${state.lastMarginCall.year} · ${fmtCash(state.lastMarginCall.soldValue)}`);
     pen.textContent = parts.join(' · ');
   }
   document.getElementById('inc-re').textContent = fmtCash(ire);
@@ -1506,7 +1998,7 @@ function renderStrip() {
     reVal.textContent = v > 0 ? `val ${fmtCash(v)}` : '';
   }
   const cn = document.getElementById('crash-note');
-  cn.textContent = state.lastCrash ? `crash y+${state.lastCrash.year}  −${state.lastCrash.pct} %` : '';
+  cn.textContent = state.lastCrash ? `houses crashed year ${state.lastCrash.year}  −${state.lastCrash.pct} %` : '';
   document.getElementById('inc-pc').textContent = fmtCash(ipc);
   const pcVal = document.getElementById('pc-val');
   if (pcVal) {
@@ -1546,7 +2038,7 @@ function renderStrip() {
   const done = isDone();
   const btn = document.getElementById('pause-btn');
   if (done) {
-    btn.textContent = state.bust ? 'Bust' : 'Done';
+    btn.textContent = state.bust ? 'Broke' : 'Finished';
     btn.className = 'pause done';
     btn.disabled = true;
   } else if (!state.started) {
@@ -1554,7 +2046,7 @@ function renderStrip() {
     btn.className = 'pause paused';
     btn.disabled = false;
   } else {
-    btn.textContent = state.paused ? 'Resume' : 'Pause';
+    btn.textContent = state.paused ? 'Play' : 'Pause';
     btn.className = 'pause' + (state.paused ? ' paused' : '');
     btn.disabled = false;
   }
@@ -1565,10 +2057,10 @@ function renderStrip() {
     document.getElementById('final-nw').textContent = fmtCash(netWorth());
     if (state.bust) {
       banner.classList.add('bust');
-      banner.querySelector('.label').textContent = `Bankrupt at year ${state.bustYear} — final net worth`;
+      banner.querySelector('.label').textContent = `You went broke in year ${state.bustYear}`;
     } else {
       banner.classList.remove('bust');
-      banner.querySelector('.label').textContent = state.year + ' years allocated — final net worth';
+      banner.querySelector('.label').textContent = state.year + ' years played — total money at the end';
     }
   } else {
     banner.style.display = 'none';
@@ -1606,7 +2098,7 @@ function setSpeed(s) {
 function renderStrategy() {
   const el = document.getElementById('prio-list');
   if (!el) return;
-  const names = { pc: 'Holding', eq: 'Equities', re: 'Real Estate' };
+  const names = { pc: 'Businesses', eq: 'Stocks', re: 'Houses' };
   const dotClass = { pc: 'pc', eq: 'pe', re: 're' };
   el.innerHTML = state.priority.map((id, i) => {
     const auto = state[autoKey(id)];
@@ -1634,6 +2126,26 @@ function promotePriority(id) {
 function toggleAutoBorrow() {
   state.autoBorrow = document.getElementById('auto-borrow-input').checked;
   saveState();
+}
+
+function toggleAdvanced() {
+  const content = document.getElementById('advanced-content');
+  const toggle = document.getElementById('advanced-toggle');
+  const open = !content.classList.contains('open');
+  content.classList.toggle('open', open);
+  toggle.classList.toggle('open', open);
+}
+
+const INTRO_SEEN_KEY = 'allocator-intro-seen';
+function showIntro() { document.getElementById('intro-overlay').style.display = 'flex'; }
+function dismissIntro() {
+  document.getElementById('intro-overlay').style.display = 'none';
+  try { localStorage.setItem(INTRO_SEEN_KEY, '1'); } catch {}
+}
+function maybeShowIntro() {
+  try {
+    if (!localStorage.getItem(INTRO_SEEN_KEY)) showIntro();
+  } catch { showIntro(); }
 }
 function buyConsumption(id) {
   const def = CONSUMPTION.find(x => x.id === id);
@@ -1699,7 +2211,7 @@ function renderConsumption() {
     const spent = CONSUMPTION.reduce((s, c) => s + (state.consumption[c.id] ? c.price : 0), 0);
     const held = consumptionValue();
     const owned = Object.keys(state.consumption).length;
-    summary.textContent = `${owned} items · spent ${fmtCash(spent)} · current value ${fmtCash(held)}`;
+    summary.textContent = `${owned} things · spent ${fmtCash(spent)} · worth now ${fmtCash(held)}`;
   }
 }
 
@@ -1736,7 +2248,14 @@ function renderChart() {
   const svg = document.getElementById('chart');
   if (!svg) return;
   const h = state.nwHistory || [];
-  if (h.length < 2) { svg.innerHTML = ''; return; }
+  if (h.length < 2) {
+    svg.innerHTML = '';
+    const cur = document.getElementById('chart-current');
+    const cag = document.getElementById('chart-cagr');
+    if (cur) { cur.textContent = fmtCash(h.length ? h[0].nw : START_CASH); cur.style.color = ''; }
+    if (cag) { cag.textContent = '—'; cag.style.color = 'var(--muted)'; }
+    return;
+  }
 
   const W = 1000, H = 250, padL = 70, padR = 10, padT = 15, padB = 25;
   const minYear = h[0].year;
@@ -1844,13 +2363,13 @@ function actRe(id) {
     state.cash -= price;
     state.re[id] = { level: 1, annual: state.reRent[id] };
   } else {
-    if (reValue(def, owned.annual) >= RE_VALUE_CAP) return;
+    if (reIsAtCap(def, owned.annual)) return;
     const cost = upgradeCost(owned.annual);
     if (state.cash < cost) return;
     state.cash -= cost;
     owned.level += 1;
     owned.annual = owned.annual * UPGRADE_MULT;
-    const maxAnnual = RE_VALUE_CAP * def.yieldPct / 100;
+    const maxAnnual = reMaxAnnual(def);
     if (owned.annual > maxAnnual) owned.annual = maxAnnual;
   }
   saveState();
@@ -1931,23 +2450,24 @@ function flashDeploy(msg, ok) {
 function maxDeployEq() {
   const before = state.cash;
   const did = deployEqInner(true);
-  if (did) { saveState(); render(); flashDeploy('✓ deployed ' + fmtCash(before - state.cash), true); }
-  else flashDeploy('no deals above hurdle', false);
+  if (did) { saveState(); render(); flashDeploy('✓ spent ' + fmtCash(before - state.cash), true); }
+  else flashDeploy('nothing pays enough yet', false);
 }
 
 // Real-estate ROI helpers
 function reActionInfo(p) {
   const owned = state.re[p.id];
   if (owned) {
-    if (reValue(p, owned.annual) >= RE_VALUE_CAP) return null;
+    if (reIsAtCap(p, owned.annual)) return null;
     const cost = upgradeCost(owned.annual);
     const gain = owned.annual * (UPGRADE_MULT - 1);
     return { type: 'grow', cost, gain, roi: gain / cost * 100 };
   }
   const cost = reCur(p);
   const rent = state.reRent[p.id];
-  const curYield = rent / cost * 100;
-  return { type: 'buy', cost, gain: rent, roi: curYield + reAppr(p.yieldPct) };
+  const curYield = cost > 0 ? rent / cost * 100 : 0;
+  const roi = Math.min(100, curYield + reAppr(p.yieldPct));  // display cap at 100% to protect against degenerate price near zero
+  return { type: 'buy', cost, gain: rent, roi };
 }
 
 function bestReAction(respectHurdle) {
@@ -1969,9 +2489,10 @@ function executeReAction(best) {
     state.re[best.p.id] = { level: 1, annual: state.reRent[best.p.id] };
   } else {
     const owned = state.re[best.p.id];
+    if (reIsAtCap(best.p, owned.annual)) return;  // defensive: don't grow past cap
     state.cash -= best.cost;
     owned.level += 1;
-    owned.annual *= UPGRADE_MULT;
+    owned.annual = Math.min(owned.annual * UPGRADE_MULT, reMaxAnnual(best.p));
   }
 }
 
@@ -1990,8 +2511,8 @@ function deployReInner(respectHurdle) {
 function maxDeployRe() {
   const before = state.cash;
   const did = deployReInner(true);
-  if (did) { saveState(); render(); flashDeploy('✓ deployed ' + fmtCash(before - state.cash), true); }
-  else flashDeploy('no deals above hurdle', false);
+  if (did) { saveState(); render(); flashDeploy('✓ spent ' + fmtCash(before - state.cash), true); }
+  else flashDeploy('nothing pays enough yet', false);
 }
 
 // ROI/yr for an action on company c (null if unavailable)
@@ -2049,8 +2570,8 @@ function deployPcInner(respectHurdle) {
 function maxDeployPc() {
   const before = state.cash;
   const did = deployPcInner(true);
-  if (did) { saveState(); render(); flashDeploy('✓ deployed ' + fmtCash(before - state.cash), true); }
-  else flashDeploy('no deals above hurdle', false);
+  if (did) { saveState(); render(); flashDeploy('✓ spent ' + fmtCash(before - state.cash), true); }
+  else flashDeploy('nothing pays enough yet', false);
 }
 
 function sellPc(id) {
@@ -2195,8 +2716,12 @@ function runTick() {
 
   // Real estate: crash or appreciation
   if (state.year >= state.nextCrash) {
-    const pct = 0.5 + Math.random() * 0.3;
-    for (const p of PROPERTIES) state.rePrice[p.id] *= (1 - pct);
+    // Realistic RE crash: 20-40% drop (2008 US was ~27%, Japan 90s ~40%, Spain 2008 ~30%).
+    // Floor each price at 20% of original so repeated crashes don't drive price to zero.
+    const pct = 0.2 + Math.random() * 0.2;
+    for (const p of PROPERTIES) {
+      state.rePrice[p.id] = Math.max(state.rePrice[p.id] * (1 - pct), p.price * 0.2);
+    }
     state.lastCrash = { year: state.year, pct: +(pct * 100).toFixed(0) };
     state.nextCrash = state.year + 5 + Math.floor(Math.random() * 6);
   } else {
@@ -2209,6 +2734,14 @@ function runTick() {
         state.re[p.id].annual = Math.min(state.re[p.id].annual * f, maxRent);
       }
     }
+  }
+
+  // Rent-to-price yield cap: a landlord can't push effective yield above 2× the
+  // property's base yield. Prevents multi-century divergence between sticky rent
+  // and crash-hit prices.
+  for (const p of PROPERTIES) {
+    const yieldCap = state.rePrice[p.id] * (p.yieldPct * 2) / 100;
+    if (state.reRent[p.id] > yieldCap) state.reRent[p.id] = yieldCap;
   }
 
   // Private holding: multiple compression every 10-20 yrs (less dramatic than listed markets)
@@ -2282,6 +2815,7 @@ document.querySelectorAll('#speed button').forEach(b => {
 });
 
 render();
+maybeShowIntro();
 </script>
 </body>
 </html>
