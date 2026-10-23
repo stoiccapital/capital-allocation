@@ -359,6 +359,7 @@
       <div class="title">Allocator</div>
       <div class="subtitle">1 second = 1 year</div>
     </div>
+    <button class="reset" onclick="resetGame()">Reset</button>
   </header>
 
   <div class="strip">
@@ -397,6 +398,11 @@
         <div class="mode" id="mode">
           <button data-mode="100">100 y</button>
           <button data-mode="inf">∞</button>
+        </div>
+        <div class="mode" id="speed">
+          <button data-speed="1">1×</button>
+          <button data-speed="10">10×</button>
+          <button data-speed="100">100×</button>
         </div>
         <button class="pause" id="pause-btn" onclick="togglePause()">Pause</button>
         <div class="tick-dot" id="tick"></div>
@@ -543,7 +549,6 @@
 
   <footer>
     <span>Save is automatic. Catalog is deterministic per seed.</span>
-    <button class="reset" onclick="resetGame()">Reset</button>
   </footer>
 </div>
 
@@ -905,6 +910,7 @@ function defaultState() {
     started: false,
     paused: false,
     mode: '100',   // '100' or 'inf'
+    speed: 1,      // 1 = 1 y/sec, 10 = 10 y/sec
     eq: {},        // ticker -> shares
     re: {},        // id -> { level, annual }
     pc: {},        // id -> { level, annual }
@@ -1532,6 +1538,9 @@ function renderStrip() {
   for (const b of document.querySelectorAll('#mode button')) {
     b.classList.toggle('on', b.dataset.mode === state.mode);
   }
+  for (const b of document.querySelectorAll('#speed button')) {
+    b.classList.toggle('on', +b.dataset.speed === (state.speed || 1));
+  }
 
   const done = isDone();
   const btn = document.getElementById('pause-btn');
@@ -1578,6 +1587,19 @@ function setMode(m) {
   state.mode = m;
   saveState();
   renderStrip();
+}
+
+let _tickTimer = null;
+function restartTick() {
+  if (_tickTimer) clearInterval(_tickTimer);
+  const interval = TICK_MS / (state.speed || 1);
+  _tickTimer = setInterval(runTick, interval);
+}
+function setSpeed(s) {
+  state.speed = s;
+  saveState();
+  renderStrip();
+  restartTick();
 }
 
 function renderStrategy() {
@@ -2084,10 +2106,12 @@ function actPc(id) {
   render();
 }
 
-// ------- Tick: 1 second = 1 year -------
+// ------- Tick: 1 second = 1 year (10x = 100ms/yr, 100x = 10ms/yr) -------
 const tickEl = document.getElementById('tick');
-setInterval(() => {
+let _tickCounter = 0;
+function runTick() {
   if (!state.started || state.paused || isDone()) return;
+  _tickCounter++;
 
   // Update interest rate for the new year (regime-switching, mean-reverting)
   updateRate();
@@ -2237,15 +2261,23 @@ setInterval(() => {
   }
 
   saveState();
-  renderStrip();
-  renderBody();
-  renderChart();
-  tickEl.classList.add('on');
-  setTimeout(() => tickEl.classList.remove('on'), 140);
-}, TICK_MS);
+  // Throttle expensive renders at high speeds. UI target ~10 FPS.
+  const renderEvery = state.speed >= 100 ? 10 : (state.speed >= 10 ? 2 : 1);
+  if (_tickCounter % renderEvery === 0) {
+    renderStrip();
+    renderBody();
+    renderChart();
+    tickEl.classList.add('on');
+    setTimeout(() => tickEl.classList.remove('on'), 80);
+  }
+}
+restartTick();
 
 document.querySelectorAll('#mode button').forEach(b => {
   b.onclick = () => setMode(b.dataset.mode);
+});
+document.querySelectorAll('#speed button').forEach(b => {
+  b.onclick = () => setSpeed(+b.dataset.speed);
 });
 
 render();
