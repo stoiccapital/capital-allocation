@@ -1,0 +1,2250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Allocator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface-2: #1c1c1c;
+    --border: #262626;
+    --border-2: #333;
+    --text: #ededed;
+    --muted: #8a8a8a;
+    --accent: #e5e5e5;
+    --green: #4ade80;
+    --red: #f87171;
+    --pe: #60a5fa;
+    --re: #fbbf24;
+    --pc: #c084fc;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 32px 24px 80px; }
+
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; flex-wrap: wrap; margin-bottom: 24px; }
+  .title { font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .subtitle { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .strip {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr auto;
+    gap: 20px;
+    padding: 18px 22px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 24px;
+    align-items: center;
+  }
+  @media (max-width: 900px) { .strip { grid-template-columns: 1fr 1fr; } }
+  .stat .k { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .stat .v { font-size: 18px; font-weight: 500; letter-spacing: -0.01em; }
+  .stat .v.big { font-size: 24px; font-weight: 600; }
+  .stat .v.pos { color: var(--green); }
+  .dot-s { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .dot-s.pe { background: var(--pe); }
+  .dot-s.re { background: var(--re); }
+  .dot-s.pc { background: var(--pc); }
+  .tick-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); opacity: 0.25; transition: opacity 0.1s, box-shadow 0.1s; justify-self: end; }
+  .tick-dot.on { opacity: 1; box-shadow: 0 0 14px var(--green); }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 0; }
+  .tab {
+    background: none; border: none;
+    padding: 12px 18px;
+    color: var(--muted);
+    font-family: inherit; font-size: 13px; font-weight: 500;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); border-bottom-color: var(--text); }
+  .tab .count { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 10px 10px; overflow: hidden; }
+  .table-scroll { max-height: 68vh; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { position: sticky; top: 0; background: var(--surface-2); z-index: 1; }
+  thead th {
+    text-align: left;
+    padding: 12px 14px;
+    font-weight: 500;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  thead th.num { text-align: right; }
+  thead th:hover { color: var(--text); }
+  thead th .arrow { opacity: 0.4; font-size: 10px; margin-left: 4px; }
+  thead th.sorted .arrow { opacity: 1; }
+
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+  tbody tr.owned { background: rgba(74, 222, 128, 0.04); }
+  tbody tr.owned:hover { background: rgba(74, 222, 128, 0.08); }
+  tbody td { padding: 10px 14px; vertical-align: middle; }
+  tbody td.num { text-align: right; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+  tbody td.actions { text-align: right; white-space: nowrap; }
+
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; letter-spacing: 0.04em; background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+  .ticker { font-family: 'JetBrains Mono', monospace; font-weight: 600; letter-spacing: 0.02em; }
+  .name { color: var(--text); font-weight: 500; }
+  .sub { color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+  button.b {
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+    color: var(--text);
+    padding: 6px 10px;
+    border-radius: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.1s, border-color 0.1s;
+    margin-left: 4px;
+  }
+  button.b:hover:not(:disabled) { background: #2a2a2a; border-color: #444; }
+  button.b.primary { background: var(--accent); color: #0a0a0a; border-color: var(--accent); font-weight: 600; }
+  button.b.primary:hover:not(:disabled) { opacity: 0.85; }
+  button.b:disabled { opacity: 0.3; cursor: not-allowed; }
+  button.b.sell { background: transparent; border-color: var(--red); color: var(--red); }
+  button.b.sell:hover:not(:disabled) { background: rgba(248, 113, 113, 0.1); border-color: var(--red); color: var(--red); }
+
+  .ledger {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.1fr 1.3fr auto;
+    gap: 20px;
+    padding: 12px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 16px;
+    align-items: center;
+    font-size: 12px;
+  }
+  .ledger input[type="range"] {
+    flex: 1;
+    accent-color: var(--accent);
+    cursor: pointer;
+    min-width: 80px;
+  }
+  .pool-ledger {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    font-size: 12px;
+  }
+  .pool-head, .pool-row, .pool-foot {
+    display: grid;
+    grid-template-columns: 1.6fr 0.9fr 0.9fr 1.8fr auto;
+    gap: 16px;
+    padding: 10px 20px;
+    align-items: center;
+  }
+  .pool-head {
+    background: var(--surface-2);
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 8px 20px;
+  }
+  .pool-row { border-top: 1px solid var(--border); }
+  .pool-foot {
+    border-top: 1px solid var(--border);
+    background: var(--surface-2);
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+  }
+  .pool-foot .k { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .pool-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+  }
+  .pool-sub {
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+  .pool-row .v { font-size: 14px; font-weight: 500; }
+  .pool-row .v.debt { color: var(--red); }
+  .pool-row input[type="range"] {
+    flex: 1;
+    accent-color: var(--accent);
+    cursor: pointer;
+    min-width: 80px;
+  }
+  .pool-row .actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .ledger .k { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+  .ledger .v { font-size: 15px; font-weight: 500; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+  .ledger .v.debt { color: var(--red); }
+  .ledger .actions { display: flex; gap: 6px; align-items: center; justify-self: end; }
+  .ledger .actions input {
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+    color: var(--text);
+    padding: 6px 8px;
+    width: 90px;
+    border-radius: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+  .strategy {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 10px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-size: 12px;
+  }
+  .strategy .k { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .strategy .prio-list { display: flex; gap: 6px; align-items: center; }
+  .prio-item {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+    color: var(--text);
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+  }
+  .prio-item:hover { background: #2a2a2a; }
+  .prio-item .rank { font-weight: 600; color: var(--muted); }
+  .prio-item .pill-auto {
+    background: rgba(74, 222, 128, 0.15);
+    color: var(--green);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+  }
+  .strategy label { display: flex; align-items: center; gap: 6px; color: var(--muted); cursor: pointer; letter-spacing: 0.03em; }
+
+  .pos { color: var(--green); }
+
+  footer { margin-top: 32px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--muted); letter-spacing: 0.05em; }
+  .reset { background: none; border: 1px solid var(--border); color: var(--muted); padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; font-family: inherit; letter-spacing: 0.05em; }
+  .reset:hover { color: var(--text); border-color: var(--text); }
+  .pause {
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    min-width: 78px;
+  }
+  .pause:hover { background: #2a2a2a; border-color: #444; }
+  .pause.paused { background: var(--accent); color: #0a0a0a; border-color: var(--accent); }
+  .pause.done { background: var(--surface-2); color: var(--muted); border-color: var(--border); cursor: not-allowed; }
+  .mode {
+    display: inline-flex;
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .mode button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    padding: 6px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+  }
+  .mode button.on { background: var(--accent); color: #0a0a0a; font-weight: 600; }
+  .mode button:not(.on):hover { color: var(--text); }
+  .view-switch {
+    display: flex;
+    gap: 2px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+    margin-bottom: 20px;
+    width: fit-content;
+  }
+  .view-switch button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+  }
+  .view-switch button.on { background: var(--accent); color: #0a0a0a; }
+  .view-switch button:not(.on):hover { color: var(--text); }
+  .chart-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 20px;
+    margin-bottom: 16px;
+  }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .chart-title { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .chart-current { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 16px; }
+  #chart { width: 100%; height: 200px; display: block; }
+  .final-banner {
+    margin-top: 24px;
+    padding: 20px 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+  .final-banner .label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .final-banner .nw { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; margin-top: 4px; }
+  .final-banner.bust { border-color: var(--red); }
+  .final-banner.bust .nw { color: var(--red); }
+  .final-banner.bust .label { color: var(--red); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="title">Allocator</div>
+      <div class="subtitle">1 second = 1 year</div>
+    </div>
+  </header>
+
+  <div class="strip">
+    <div class="stat">
+      <div class="k">Cash</div>
+      <div class="v mono big" id="cash">$ 100 k</div>
+    </div>
+    <div class="stat">
+      <div class="k">Net annual income</div>
+      <div class="v mono pos" id="annual">$ 0</div>
+      <div class="sub mono" id="interest-note" style="color: var(--muted); font-size: 10px; margin-top: 2px; min-height: 12px;"></div>
+    </div>
+    <div class="stat">
+      <div class="k"><span class="dot-s pe"></span>Dividends</div>
+      <div class="v mono" id="inc-pe">$ 0</div>
+      <div class="sub mono" id="eq-val" style="color: var(--muted); font-size: 10px; margin-top: 2px;"></div>
+      <div class="sub mono" id="pe-note" style="color: var(--red); font-size: 10px; min-height: 12px;"></div>
+    </div>
+    <div class="stat">
+      <div class="k"><span class="dot-s re"></span>Rent</div>
+      <div class="v mono" id="inc-re">$ 0</div>
+      <div class="sub mono" id="re-val" style="color: var(--muted); font-size: 10px; margin-top: 2px;"></div>
+      <div class="sub mono" id="crash-note" style="color: var(--red); font-size: 10px; min-height: 12px;"></div>
+    </div>
+    <div class="stat">
+      <div class="k"><span class="dot-s pc"></span>Holding FCF</div>
+      <div class="v mono" id="inc-pc">$ 0</div>
+      <div class="sub mono" id="pc-val" style="color: var(--muted); font-size: 10px; margin-top: 2px; min-height: 12px;"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+      <div class="stat" style="text-align:right;">
+        <div class="k">Year</div>
+        <div class="v mono" id="year">+0 / 100</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="mode" id="mode">
+          <button data-mode="100">100 y</button>
+          <button data-mode="inf">∞</button>
+        </div>
+        <button class="pause" id="pause-btn" onclick="togglePause()">Pause</button>
+        <div class="tick-dot" id="tick"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-wrap">
+    <div class="chart-header">
+      <div class="chart-title">Net worth over time</div>
+      <div style="display:flex;gap:24px;align-items:baseline;">
+        <div><span class="chart-title" style="margin-right:6px;">CAGR</span><span class="chart-current mono" id="chart-cagr">—</span></div>
+        <div><span class="chart-title" style="margin-right:6px;">Net worth</span><span class="chart-current mono" id="chart-current">$ 0</span></div>
+      </div>
+    </div>
+    <svg id="chart" viewBox="0 0 1000 250" preserveAspectRatio="none"></svg>
+  </div>
+
+  <div class="view-switch" id="view-switch">
+    <button data-view="invest" onclick="setView('invest')">Investment</button>
+    <button data-view="consume" onclick="setView('consume')">Consumption</button>
+  </div>
+
+  <div class="pool-ledger" id="pool-ledger">
+    <div class="pool-head">
+      <div>Pool</div><div>Debt</div><div>Available</div><div>Max LTV</div><div style="text-align:right;">Actions</div>
+    </div>
+    <div class="pool-row" data-pool="Eq">
+      <div class="pool-name"><span class="dot-s pe"></span>Equities <span class="pool-sub">securities margin</span></div>
+      <div class="v mono debt" id="debt-Eq">$ 0</div>
+      <div class="v mono" id="max-Eq">$ 0</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input type="range" id="ltv-slider-Eq" min="0" max="80" step="5" oninput="setLtvPool('Eq')" />
+        <span class="v mono" id="ltv-val-Eq" style="min-width:40px;text-align:right;">0 %</span>
+      </div>
+      <div class="actions">
+        <button class="b primary" onclick="borrowPool('Eq')">Borrow</button>
+        <button class="b" onclick="repayPool('Eq')">Repay</button>
+      </div>
+    </div>
+    <div class="pool-row" data-pool="Re">
+      <div class="pool-name"><span class="dot-s re"></span>Real estate <span class="pool-sub">mortgage</span></div>
+      <div class="v mono debt" id="debt-Re">$ 0</div>
+      <div class="v mono" id="max-Re">$ 0</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input type="range" id="ltv-slider-Re" min="0" max="80" step="5" oninput="setLtvPool('Re')" />
+        <span class="v mono" id="ltv-val-Re" style="min-width:40px;text-align:right;">0 %</span>
+      </div>
+      <div class="actions">
+        <button class="b primary" onclick="borrowPool('Re')">Borrow</button>
+        <button class="b" onclick="repayPool('Re')">Repay</button>
+      </div>
+    </div>
+    <div class="pool-row" data-pool="Pc">
+      <div class="pool-name"><span class="dot-s pc"></span>Holding <span class="pool-sub">corporate loan</span></div>
+      <div class="v mono debt" id="debt-Pc">$ 0</div>
+      <div class="v mono" id="max-Pc">$ 0</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input type="range" id="ltv-slider-Pc" min="0" max="80" step="5" oninput="setLtvPool('Pc')" />
+        <span class="v mono" id="ltv-val-Pc" style="min-width:40px;text-align:right;">0 %</span>
+      </div>
+      <div class="actions">
+        <button class="b primary" onclick="borrowPool('Pc')">Borrow</button>
+        <button class="b" onclick="repayPool('Pc')">Repay</button>
+      </div>
+    </div>
+    <div class="pool-foot">
+      <div class="k">Rate · Inflation</div>
+      <div class="v mono" id="rates">6.0 % · 2.0 %</div>
+    </div>
+  </div>
+
+  <div class="strategy">
+    <div class="k">Priority — click to promote</div>
+    <div class="prio-list" id="prio-list"></div>
+    <label>
+      <input type="checkbox" id="auto-borrow-input" onchange="toggleAutoBorrow()" />
+      Auto borrow to max
+    </label>
+  </div>
+
+  <div id="final-banner" class="final-banner" style="display:none;margin-top:0;margin-bottom:24px;">
+    <div>
+      <div class="label">100 years allocated — final net worth</div>
+      <div class="nw mono" id="final-nw">$ 0</div>
+    </div>
+    <button class="reset" onclick="resetGame()" style="padding: 10px 18px; font-size: 12px;">Play again</button>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--border);">
+    <div class="tabs" id="tabs" style="border-bottom:none;"></div>
+    <div style="display:flex;align-items:center;gap:12px;margin: 0 6px 8px 0;">
+      <label id="hurdle-wrap" style="display:none;align-items:center;gap:6px;font-size:12px;color:var(--muted);letter-spacing:0.03em;">
+        Hurdle
+        <input type="number" id="pc-hurdle" min="0" max="100" step="1" style="width:52px;background:var(--surface-2);border:1px solid var(--border-2);color:var(--text);padding:4px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;" onchange="setHurdle()" />
+        <span>%</span>
+      </label>
+      <label id="auto-pc-wrap" style="display:none;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer;letter-spacing:0.03em;">
+        <input type="checkbox" id="auto-pc" onchange="toggleAuto()" />
+        Auto deploy
+      </label>
+      <button class="b primary" id="deploy-btn" style="display:none;">Deploy max</button>
+      <span id="deploy-flash" style="font-size:11px;color:var(--muted);letter-spacing:0.03em;min-width:140px;opacity:0;transition:opacity 0.2s;"></span>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <div class="table-scroll">
+      <table id="main-table">
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="consume-section" style="display:none;">
+    <div class="strategy" style="margin-bottom:16px;">
+      <div class="k">Lifestyle portfolio</div>
+      <div id="consume-summary" class="mono" style="font-size:13px;"></div>
+      <div class="mode" id="consume-filter" style="margin-left:auto;">
+        <button data-g="all" onclick="setConsumeFilter('all')">All</button>
+        <button data-g="M"   onclick="setConsumeFilter('M')">For him</button>
+        <button data-g="F"   onclick="setConsumeFilter('F')">For her</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table id="consume-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Category</th>
+              <th class="num">Price</th>
+              <th class="num">Maint/yr</th>
+              <th class="num">Appr./yr</th>
+              <th class="num">Owned value</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="consume-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>Save is automatic. Catalog is deterministic per seed.</span>
+    <button class="reset" onclick="resetGame()">Reset</button>
+  </footer>
+</div>
+
+<script>
+// ------- PRNG (deterministic seed so catalog is stable) -------
+function mulberry32(seed) {
+  return function() {
+    let t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rand = mulberry32(42);
+const r = () => rand();
+const rInt = (lo, hi) => Math.floor(lo + r() * (hi - lo + 1));
+const rLog = (lo, hi) => Math.exp(Math.log(lo) + r() * (Math.log(hi) - Math.log(lo)));
+const pick = (arr) => arr[Math.floor(r() * arr.length)];
+
+// ------- Format -------
+function fmtNum(n) {
+  const abs = Math.abs(n);
+  if (abs >= 1e24) return (n / 1e24).toFixed(2) + ' Y';   // yottas
+  if (abs >= 1e21) return (n / 1e21).toFixed(2) + ' Z';   // zettas
+  if (abs >= 1e18) return (n / 1e18).toFixed(2) + ' E';   // exas (quintillion)
+  if (abs >= 1e15) return (n / 1e15).toFixed(2) + ' P';   // petas (quadrillion)
+  if (abs >= 1e12) return (n / 1e12).toFixed(abs >= 1e13 ? 1 : 2) + ' t';
+  if (abs >= 1e9)  return (n / 1e9).toFixed(abs >= 1e10 ? 1 : 2) + ' b';
+  if (abs >= 1e6)  return (n / 1e6).toFixed(abs >= 1e7 ? 1 : 2) + ' m';
+  if (abs >= 1e3)  return (n / 1e3).toFixed(abs >= 1e4 ? 1 : 2) + ' k';
+  return Math.round(n).toString();
+}
+function fmtCash(n) { return '$ ' + fmtNum(n); }
+function fmtPct(n) { return n.toFixed(1) + ' %'; }
+
+// ------- Catalog -------
+const SECTORS = ['Tech', 'Energy', 'Finance', 'Health', 'Consumer', 'Industrial', 'Materials', 'Utilities', 'Telecom', 'Media'];
+const EQ_ADJ = ['Nordic','Pacific','Atlantic','Global','Alpine','Meridian','Summit','Horizon','Quantum','Vertex','Pinnacle','Vanguard','Keystone','Cardinal','Sterling','Beacon','Aurora','Crescent','Prime','Solstice','Granite','Orion','Fulcrum','Lattice','Zenith','Haven','Equinox'];
+const EQ_NOUN = {
+  Tech: ['Semiconductors','Robotics','Systems','Compute','Networks','Data'],
+  Energy: ['Energy','Power','Petroleum','Gas','Resources','Grid'],
+  Finance: ['Capital','Financial','Trust','Holdings','Partners','Group'],
+  Health: ['Pharma','Health','Medical','Biosciences','Therapeutics','Care'],
+  Consumer: ['Retail','Brands','Goods','Foods','Beverages','Apparel'],
+  Industrial: ['Industries','Logistics','Manufacturing','Machinery','Freight','Rail'],
+  Materials: ['Materials','Mining','Chemicals','Metals','Minerals','Steel'],
+  Utilities: ['Utilities','Water','Electric','Infrastructure','Gas','Services'],
+  Telecom: ['Communications','Telecom','Wireless','Media','Networks','Fiber'],
+  Media: ['Media','Studios','Entertainment','Publishing','Broadcasting','Pictures'],
+};
+
+function makeTicker() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let s = '';
+  const len = rInt(3, 4);
+  for (let i = 0; i < len; i++) s += chars[Math.floor(r() * 26)];
+  return s;
+}
+
+function genEquities() {
+  const used = new Set();
+  const out = [];
+  // Market-cap buckets. Total 100 companies.
+  const buckets = [
+    { count: 5,  min: 1e12, max: 1e13 },   // 5 giants: $1T – $10T
+    { count: 15, min: 1e11, max: 1e12 },   // 15 large caps: $100B – $1T
+    { count: 80, min: 1e9,  max: 1e11 },   // 80 mid caps: $1B – $100B
+  ];
+  for (const b of buckets) {
+    for (let i = 0; i < b.count; i++) {
+      const sector = pick(SECTORS);
+      const name = pick(EQ_ADJ) + ' ' + pick(EQ_NOUN[sector]);
+      let ticker; do { ticker = makeTicker(); } while (used.has(ticker));
+      used.add(ticker);
+      const price = +(rLog(20, 800)).toFixed(2);
+      const yieldPct = Math.max(0.1, Math.min(8, (8 - Math.log10(price) * 1.4) * (0.5 + r())));
+      const marketCap = rLog(b.min, b.max);
+      const shares = Math.round(marketCap / price);
+      out.push({ id: ticker, ticker, name, sector, price, yield: +yieldPct.toFixed(2), shares });
+    }
+  }
+  // shuffle so buckets aren't clustered
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(r() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+const RE_TYPES = ['Apartment','Townhouse','Multifamily','Office','Retail','Warehouse','Mixed-use','Industrial','Hotel','Condo'];
+const RE_CITIES = ['Berlin','München','Hamburg','Frankfurt','Köln','Düsseldorf','Stuttgart','Leipzig','Bremen','Dresden','Hannover','Nürnberg','Wien','Zürich','Amsterdam','Paris','London','Madrid','Milano','Lisboa','Praha','Warszawa','Oslo','København','Helsinki'];
+const RE_DISTRICTS = ['Mitte','Altstadt','Neustadt','Westend','Südstadt','Nordend','Hafen','Zentrum','Ost','Riverside','Hilltop','Garden','Park','Market','Harbor','Avenue','Plaza','Quarter'];
+
+function genProperties() {
+  const out = [];
+  // Cheap high-yield properties are plentiful; prime ones are rare.
+  const buckets = [
+    { count: 50, pMin: 40e3,  pMax: 250e3, yMin: 7, yMax: 12 },  // cheap small high-yield
+    { count: 35, pMin: 250e3, pMax: 1.5e6, yMin: 5, yMax: 9 },   // mid
+    { count: 15, pMin: 1.5e6, pMax: 8e6,   yMin: 3, yMax: 6 },   // prime low-yield
+  ];
+  for (const b of buckets) {
+    for (let i = 0; i < b.count; i++) {
+      const type = pick(RE_TYPES);
+      const city = pick(RE_CITIES);
+      const district = pick(RE_DISTRICTS);
+      const price = Math.round(rLog(b.pMin, b.pMax));
+      const yieldPct = b.yMin + r() * (b.yMax - b.yMin);
+      const annual = Math.round(price * yieldPct / 100);
+      out.push({
+        id: 'p' + out.length,
+        name: district + ' ' + type,
+        city, type, price, annual,
+        yieldPct: +yieldPct.toFixed(1),
+      });
+    }
+  }
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(r() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+const PC_INDUSTRIES = ['SaaS','Logistics','Manufacturing','Fintech','Healthcare','Food & Bev','E-commerce','Media','Energy','Agriculture','Hospitality','Construction','Automotive','Mining','Transportation','Education','Biotech','Insurance','Retail','Chemicals'];
+const PC_SUFFIX = ['Group','Partners','Holdings','Industries','Labs','Works','Systems','Ventures','Co.','AG','GmbH','Trading'];
+const PC_PREFIX = ['Weber','Müller','Schmidt','Fischer','Nakamura','Chen','Rossi','Lindström','Novak','Petersen','Jansen','Aalto','Dubois','Larsson','Carvalho','Marchetti','Ahlgren','Winter','Steiner','Falke','Krüger','Bauer','Hoffmann','Richter','Vogel'];
+
+function genCompanies() {
+  // Power-law distribution — many small, few giants
+  const buckets = [
+    { count: 1,   min: 1e9, max: 1e10 },   // 1 giant: $1B-$10B
+    { count: 10,  min: 1e8, max: 1e9  },   // 10 large: $100M-$1B
+    { count: 50,  min: 1e7, max: 1e8  },   // 50 mid: $10M-$100M
+    { count: 200, min: 1e6, max: 1e7  },   // 200 small-mid: $1M-$10M
+    { count: 739, min: 1e5, max: 1e6  },   // 739 small: $100k-$1M
+  ];
+  const out = [];
+  for (const b of buckets) {
+    for (let i = 0; i < b.count; i++) {
+      const industry = pick(PC_INDUSTRIES);
+      const name = pick(PC_PREFIX) + ' ' + pick(PC_SUFFIX);
+      const price = Math.round(rLog(b.min, b.max));
+      const marginPct = 5 + r() * 20;
+      const annual = Math.round(price * marginPct / 100);
+      out.push({
+        id: 'c' + out.length,
+        name,
+        industry,
+        price,
+        annual,
+        marginPct: +marginPct.toFixed(1),
+      });
+    }
+  }
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(r() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+const EQUITIES = genEquities();
+const PROPERTIES = genProperties();
+const COMPANIES = genCompanies();
+
+// Consumption catalog — 100 items a wealthy allocator might buy.
+// price = acquisition cost · maint = yearly upkeep (% of value) · appr = yearly value change (%)
+const CONSUMPTION = [
+  // --- Private aviation (8)
+  { id: 'c1',  cat: 'Jet',       name: 'Gulfstream G700',           price: 78e6,  maint: 8, appr: -5 },
+  { id: 'c2',  cat: 'Jet',       name: 'Bombardier Global 7500',    price: 73e6,  maint: 8, appr: -5 },
+  { id: 'c3',  cat: 'Jet',       name: 'Dassault Falcon 10X',       price: 75e6,  maint: 8, appr: -5 },
+  { id: 'c4',  cat: 'Jet',       name: 'Cessna Citation Longitude', price: 28e6,  maint: 7, appr: -6 },
+  { id: 'c5',  cat: 'Jet',       name: 'Embraer Phenom 300E',       price: 11e6,  maint: 6, appr: -7 },
+  { id: 'c6',  cat: 'Heli',      name: 'Airbus H160',               price: 15e6,  maint: 8, appr: -5 },
+  { id: 'c7',  cat: 'Heli',      name: 'Bell 525 Relentless',       price: 12e6,  maint: 8, appr: -5 },
+  { id: 'c8',  cat: 'Heli',      name: 'Leonardo AW139',            price: 18e6,  maint: 8, appr: -5 },
+  // --- Yachts (8)
+  { id: 'c9',  cat: 'Yacht',     name: 'Riva Aquariva Super',       price: 1.5e6, maint: 6, appr: -3 },
+  { id: 'c10', cat: 'Yacht',     name: 'Sanlorenzo SX88',           price: 7e6,   maint: 8, appr: -5 },
+  { id: 'c11', cat: 'Yacht',     name: 'Benetti 108ft',             price: 25e6,  maint: 10,appr: -7 },
+  { id: 'c12', cat: 'Yacht',     name: 'Feadship 180ft',            price: 95e6,  maint: 10,appr: -6 },
+  { id: 'c13', cat: 'Yacht',     name: 'Lürssen 300ft',             price: 250e6, maint: 10,appr: -5 },
+  { id: 'c14', cat: 'Yacht',     name: 'Oceanco "Black Pearl"-class', price: 400e6, maint: 10,appr: -4 },
+  { id: 'c15', cat: 'Yacht',     name: 'Sailing superyacht (Perini)', price: 60e6, maint: 9, appr: -5 },
+  { id: 'c16', cat: 'Yacht',     name: 'U-Boat Worx submarine',     price: 8e6,   maint: 7, appr: -4 },
+  // --- Cars - modern (12)
+  { id: 'c17', cat: 'Supercar',  name: 'Bugatti Chiron Super Sport', price: 3.9e6, maint: 2, appr: 3 },
+  { id: 'c18', cat: 'Supercar',  name: 'Pagani Huayra Codalunga',    price: 7e6,   maint: 2, appr: 4 },
+  { id: 'c19', cat: 'Supercar',  name: 'Koenigsegg Jesko',           price: 3e6,   maint: 2, appr: 3 },
+  { id: 'c20', cat: 'Supercar',  name: 'Ferrari SF90 XX',            price: 1.1e6, maint: 2, appr: -2 },
+  { id: 'c21', cat: 'Supercar',  name: 'McLaren Elva',               price: 1.7e6, maint: 2, appr: 0 },
+  { id: 'c22', cat: 'Supercar',  name: 'Aston Martin Valkyrie',      price: 3.2e6, maint: 2, appr: 2 },
+  { id: 'c23', cat: 'Luxury',    name: 'Rolls-Royce Phantom EWB',    price: 650e3, maint: 2, appr: -8 },
+  { id: 'c24', cat: 'Luxury',    name: 'Bentley Mulliner Batur',     price: 2.1e6, maint: 2, appr: -5 },
+  { id: 'c25', cat: 'Luxury',    name: 'Mercedes-Maybach S-Class',   price: 230e3, maint: 2, appr: -10 },
+  { id: 'c26', cat: 'Luxury',    name: 'Range Rover SV LWB',         price: 230e3, maint: 3, appr: -12 },
+  { id: 'c27', cat: 'Luxury',    name: 'Lamborghini Revuelto',       price: 650e3, maint: 2, appr: -3 },
+  { id: 'c28', cat: 'Luxury',    name: 'Porsche 911 S/T',            price: 310e3, maint: 2, appr: 0 },
+  // --- Cars - classic / collectible (8)
+  { id: 'c29', cat: 'Classic',   name: 'Ferrari 250 GTO (1962)',     price: 70e6,  maint: 1, appr: 6 },
+  { id: 'c30', cat: 'Classic',   name: 'Mercedes 300 SLR Uhlenhaut', price: 142e6, maint: 1, appr: 5 },
+  { id: 'c31', cat: 'Classic',   name: 'McLaren F1 LM',              price: 25e6,  maint: 1, appr: 5 },
+  { id: 'c32', cat: 'Classic',   name: 'Ferrari 275 GTB/4',          price: 3.5e6, maint: 1, appr: 4 },
+  { id: 'c33', cat: 'Classic',   name: 'Porsche 911 2.7 RS',         price: 1.2e6, maint: 1, appr: 4 },
+  { id: 'c34', cat: 'Classic',   name: 'Aston Martin DB5',           price: 1.1e6, maint: 1, appr: 4 },
+  { id: 'c35', cat: 'Classic',   name: 'Jaguar E-Type Series 1',     price: 450e3, maint: 1, appr: 3 },
+  { id: 'c36', cat: 'Classic',   name: 'Mercedes 300SL Gullwing',    price: 1.5e6, maint: 1, appr: 4 },
+  // --- Residences (12)
+  { id: 'c37', cat: 'Home',      name: 'Manhattan Billionaires\' Row penthouse', price: 100e6, maint: 2, appr: 4 },
+  { id: 'c38', cat: 'Home',      name: 'Hamptons oceanfront estate',  price: 65e6,  maint: 2, appr: 4 },
+  { id: 'c39', cat: 'Home',      name: 'Beverly Hills mansion',       price: 85e6,  maint: 2, appr: 4 },
+  { id: 'c40', cat: 'Home',      name: 'Aspen slopeside chalet',      price: 42e6,  maint: 2, appr: 4 },
+  { id: 'c41', cat: 'Home',      name: 'Private Caribbean island',    price: 160e6, maint: 3, appr: 3 },
+  { id: 'c42', cat: 'Home',      name: 'Monaco Port Hercule apartment', price: 55e6, maint: 2, appr: 5 },
+  { id: 'c43', cat: 'Home',      name: 'London Mayfair townhouse',    price: 72e6,  maint: 2, appr: 4 },
+  { id: 'c44', cat: 'Home',      name: 'Dubai Palm Jumeirah villa',   price: 32e6,  maint: 2, appr: 3 },
+  { id: 'c45', cat: 'Home',      name: 'Gstaad Swiss chalet',         price: 38e6,  maint: 2, appr: 4 },
+  { id: 'c46', cat: 'Home',      name: 'Cap Ferrat Riviera villa',    price: 110e6, maint: 2, appr: 4 },
+  { id: 'c47', cat: 'Home',      name: 'Napa Valley vineyard estate', price: 28e6,  maint: 3, appr: 4 },
+  { id: 'c48', cat: 'Home',      name: 'Wyoming 20 000-acre ranch',   price: 55e6,  maint: 2, appr: 3 },
+  // --- Watches (14)
+  { id: 'c49', cat: 'Watch',     name: 'Patek Philippe Grandmaster Chime', price: 31e6, maint: 0.3, appr: 7 },
+  { id: 'c50', cat: 'Watch',     name: 'Patek Philippe Henry Graves Supercomplication', price: 28e6, maint: 0.3, appr: 6 },
+  { id: 'c51', cat: 'Watch',     name: 'Breguet Marie Antoinette No. 160', price: 30e6, maint: 0.3, appr: 5 },
+  { id: 'c52', cat: 'Watch',     name: 'Richard Mille RM 56-02 Tourbillon', price: 2.3e6, maint: 0.3, appr: 6 },
+  { id: 'c53', cat: 'Watch',     name: 'Patek Philippe 5711 Tiffany Blue', price: 6.5e6, maint: 0.3, appr: 5 },
+  { id: 'c54', cat: 'Watch',     name: 'Audemars Piguet Royal Oak Perpetual', price: 180e3, maint: 0.3, appr: 4 },
+  { id: 'c55', cat: 'Watch',     name: 'A. Lange & Söhne Grand Complication', price: 2.5e6, maint: 0.3, appr: 4 },
+  { id: 'c56', cat: 'Watch',     name: 'Rolex Daytona Rainbow',       price: 550e3, maint: 0.3, appr: 5 },
+  { id: 'c57', cat: 'Watch',     name: 'F.P. Journe Chronomètre à Résonance', price: 320e3, maint: 0.3, appr: 5 },
+  { id: 'c58', cat: 'Watch',     name: 'Vacheron Constantin Tour de l\'Île', price: 1.8e6, maint: 0.3, appr: 4 },
+  { id: 'c59', cat: 'Watch',     name: 'Jaeger-LeCoultre Hybris Mechanica', price: 450e3, maint: 0.3, appr: 3 },
+  { id: 'c60', cat: 'Watch',     name: 'Patek Philippe Nautilus 5811',  price: 250e3, maint: 0.3, appr: 5 },
+  { id: 'c61', cat: 'Watch',     name: 'Rolex Submariner "James Bond" vintage', price: 180e3, maint: 0.3, appr: 4 },
+  { id: 'c62', cat: 'Watch',     name: 'Omega Speedmaster Apollo 11 vintage', price: 120e3, maint: 0.3, appr: 3 },
+  // --- Art (12)
+  { id: 'c63', cat: 'Art',       name: 'Picasso oil on canvas',       price: 110e6, maint: 1, appr: 5 },
+  { id: 'c64', cat: 'Art',       name: 'Monet "Water Lilies" late',   price: 85e6,  maint: 1, appr: 4 },
+  { id: 'c65', cat: 'Art',       name: 'Van Gogh portrait',           price: 160e6, maint: 1, appr: 4 },
+  { id: 'c66', cat: 'Art',       name: 'Basquiat large canvas',       price: 55e6,  maint: 1, appr: 6 },
+  { id: 'c67', cat: 'Art',       name: 'Warhol "Marilyn"',            price: 75e6,  maint: 1, appr: 4 },
+  { id: 'c68', cat: 'Art',       name: 'Rothko color field',          price: 65e6,  maint: 1, appr: 4 },
+  { id: 'c69', cat: 'Art',       name: 'Pollock drip painting',       price: 90e6,  maint: 1, appr: 4 },
+  { id: 'c70', cat: 'Art',       name: 'Hockney pool portrait',       price: 95e6,  maint: 1, appr: 4 },
+  { id: 'c71', cat: 'Art',       name: 'Koons "Balloon Dog"',         price: 48e6,  maint: 1, appr: 3 },
+  { id: 'c72', cat: 'Art',       name: 'Da Vinci drawing',            price: 220e6, maint: 1, appr: 5 },
+  { id: 'c73', cat: 'Art',       name: 'Giacometti bronze sculpture', price: 155e6, maint: 1, appr: 4 },
+  { id: 'c74', cat: 'Art',       name: 'Modigliani "Nu Couché"',      price: 170e6, maint: 1, appr: 4 },
+  // --- Jewelry (8)
+  { id: 'c75', cat: 'Jewelry',   name: 'Pink diamond (10 ct Argyle)', price: 55e6,  maint: 0.2, appr: 6 },
+  { id: 'c76', cat: 'Jewelry',   name: 'Blue diamond (Hope-tier)',    price: 95e6,  maint: 0.2, appr: 5 },
+  { id: 'c77', cat: 'Jewelry',   name: 'Burma ruby necklace',         price: 25e6,  maint: 0.2, appr: 5 },
+  { id: 'c78', cat: 'Jewelry',   name: 'Kashmir sapphire ring',       price: 14e6,  maint: 0.2, appr: 4 },
+  { id: 'c79', cat: 'Jewelry',   name: 'Harry Winston diamond necklace', price: 22e6, maint: 0.2, appr: 4 },
+  { id: 'c80', cat: 'Jewelry',   name: 'Cartier Panthère brooch',     price: 5e6,   maint: 0.2, appr: 3 },
+  { id: 'c81', cat: 'Jewelry',   name: 'Imperial jadeite necklace',   price: 23e6,  maint: 0.2, appr: 5 },
+  { id: 'c82', cat: 'Jewelry',   name: 'Golden Jubilee diamond-tier gem', price: 13e6, maint: 0.2, appr: 5 },
+  // --- Collections (8)
+  { id: 'c83', cat: 'Collect',   name: 'Romanée-Conti vertical cellar', price: 6e6, maint: 2, appr: 5 },
+  { id: 'c84', cat: 'Collect',   name: 'Rare whisky (Macallan 1926)', price: 2.5e6,maint: 0.5, appr: 5 },
+  { id: 'c85', cat: 'Collect',   name: 'Hermès Birkin collection (15)', price: 1e6, maint: 0.5, appr: 5 },
+  { id: 'c86', cat: 'Collect',   name: 'Rare first-edition library',  price: 4e6,   maint: 0.5, appr: 3 },
+  { id: 'c87', cat: 'Collect',   name: 'Vintage comic grail set',     price: 6e6,   maint: 0.5, appr: 5 },
+  { id: 'c88', cat: 'Collect',   name: 'Antique Chinese porcelain',   price: 22e6,  maint: 0.5, appr: 3 },
+  { id: 'c89', cat: 'Collect',   name: 'Rare meteorite collection',   price: 5e6,   maint: 0.5, appr: 4 },
+  { id: 'c90', cat: 'Collect',   name: 'Cuban cigar aged humidor',    price: 500e3, maint: 1, appr: 2 },
+  // --- Experiences & vanity (10) — fully consumed in year 1
+  { id: 'c91', cat: 'Experience',name: 'Private orbital spaceflight', price: 55e6,  maint: 0, appr: -100 },
+  { id: 'c92', cat: 'Experience',name: 'Virgin Galactic suborbital',  price: 450e3, maint: 0, appr: -100 },
+  { id: 'c93', cat: 'Experience',name: 'Private Everest expedition',  price: 300e3, maint: 0, appr: -100 },
+  { id: 'c94', cat: 'Experience',name: 'Private African safari (yr)', price: 1.5e6, maint: 0, appr: -100 },
+  { id: 'c95', cat: 'Experience',name: 'F1 team sponsorship (yr)',    price: 15e6,  maint: 0, appr: -100 },
+  { id: 'c96', cat: 'Experience',name: 'Private concert — world act', price: 5e6,   maint: 0, appr: -100 },
+  { id: 'c97', cat: 'Vanity',    name: 'Named building — university', price: 50e6,  maint: 0, appr: -100 },
+  { id: 'c98', cat: 'Vanity',    name: 'Research institute grant',    price: 25e6,  maint: 0, appr: -100 },
+  { id: 'c99', cat: 'Vanity',    name: 'Private foundation seed',     price: 100e6, maint: 0, appr: -100 },
+  { id: 'c100',cat: 'Experience',name: 'Mega-yacht world tour (yr)',  price: 8e6,   maint: 0, appr: -100 },
+
+  // --- Ferraris for men (8)
+  { id: 'f1', cat: 'Supercar', name: 'Ferrari Daytona SP3',          price: 2.3e6, maint: 2, appr: 4 },
+  { id: 'f2', cat: 'Supercar', name: 'Ferrari Monza SP2',            price: 1.8e6, maint: 2, appr: 3 },
+  { id: 'f3', cat: 'Classic',  name: 'Ferrari LaFerrari',            price: 3.5e6, maint: 1, appr: 5 },
+  { id: 'f4', cat: 'Classic',  name: 'Ferrari F40',                  price: 2.8e6, maint: 1, appr: 6 },
+  { id: 'f5', cat: 'Classic',  name: 'Ferrari F50',                  price: 4.5e6, maint: 1, appr: 5 },
+  { id: 'f6', cat: 'Classic',  name: 'Ferrari Enzo',                 price: 4.2e6, maint: 1, appr: 5 },
+  { id: 'f7', cat: 'Supercar', name: 'Ferrari 812 Competizione',     price: 650e3, maint: 2, appr: 2 },
+  { id: 'f8', cat: 'Supercar', name: 'Ferrari Purosangue',           price: 450e3, maint: 2, appr: -3 },
+];
+
+// Default gender tagging by category (simple heuristic).
+const CAT_GENDER = {
+  Jet: 'both', Heli: 'both', Yacht: 'both',
+  Supercar: 'M', Luxury: 'both', Classic: 'M',
+  Home: 'both', Watch: 'M', Art: 'both',
+  Jewelry: 'F', Collect: 'both', Experience: 'both', Vanity: 'both',
+};
+CONSUMPTION.forEach(c => { if (!c.gender) c.gender = CAT_GENDER[c.cat] || 'both'; });
+const EQ_MCAP_CAP = 1e13;  // $10T hard cap on market cap
+const PC_SIZE_CAP = 1e12;  // $1T hard cap on private-company enterprise value (Cargill/Koch-scale)
+const RE_VALUE_CAP = 1e9;  // $1B hard cap on single-property market value (trophy skyscraper)
+
+// ------- State -------
+const STORAGE_KEY = 'allocator-v9';
+const START_CASH = 100000;
+const UPGRADE_MULT = 1.5;
+const TICK_MS = 1000;
+const LIMIT_YEARS = 100;
+const INFLATION_PCT = 2.0;      // nominal cash erosion per year
+const RATE_START = 5.0;         // starting interest rate (%)
+const RATE_REVERSION = 0.30;    // yearly pull toward regime target
+const RATE_NOISE = 0.80;        // yearly σ in rate movement (%)
+const RATE_FLOOR = 0.1;
+const RATE_CEIL = 20.0;
+const MAX_LTV = 0.8;            // borrow up to 80% of asset value → 5× leverage ceiling
+const BASE_CREDIT = 100000;     // unsecured signature line
+const DIV_TAX = 0.25;           // dividend tax; 0% if ownership >= 10% of float
+const DIV_TAX_FREE_PCT = 0.10;
+const YIELD_CUT_FLOOR = 15;     // when current yield exceeds this, dividend is at risk
+const YIELD_CUT_HARD = 25;      // above this, dividend cut is certain
+const EQ_MARGIN_CALL_LTV = 0.75;  // debt / equity value — above this, forced liquidation
+
+// Growth multiplier derived deterministically from ticker (1.0 – 2.0).
+// Standard company → 1.0; hot grower → up to 2.0.
+function eqGrowth(e) {
+  let h = 2166136261;
+  for (let i = 0; i < e.ticker.length; i++) {
+    h ^= e.ticker.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return 1.0 + ((h >>> 0) % 10000) / 10000;  // [1.0, 2.0)
+}
+
+// Base appreciation drift from yield + per-company growth factor.
+// Standard 10%, up to 20% for hot growers.
+function eqAppr(e) {
+  return Math.min(20, Math.max(0, (10 - e.yield) * eqGrowth(e)));
+}
+
+// Effective yearly drift. Big companies grow slower — decays log-linearly between
+// $1B (full growth) and $100T (inflation-only). Mimics the real corporate lifecycle:
+// mega-caps grow at or near inflation, no hard cap.
+function eqDrift(e) {
+  const mcap = eqMarketCap(e);
+  const base = eqAppr(e);
+  const decay = 1 - Math.min(1, Math.max(0, (Math.log10(Math.max(mcap, 1)) - 9) / 5));
+  return base * decay + INFLATION_PCT * (1 - decay);
+}
+function reAppr(yieldPct) { return Math.max(0, 10 - yieldPct); }  // % per year
+
+function limit() { return state.mode === 'inf' ? Infinity : LIMIT_YEARS; }
+function isDone() { return state.bust || state.year >= limit(); }
+
+function defaultState() {
+  return {
+    cash: START_CASH,
+    year: 0,
+    started: false,
+    paused: false,
+    mode: '100',   // '100' or 'inf'
+    eq: {},        // ticker -> shares
+    re: {},        // id -> { level, annual }
+    pc: {},        // id -> { level, annual }
+    eqPrice: {},   // ticker -> current price (appreciates yearly)
+    eqDps: {},     // ticker -> current dividend per share (sticky; survives crashes)
+    rePrice: {},   // id -> current market price (appreciates yearly; crashes)
+    reRent: {},    // id -> current rent (sticky; grows but doesn't drop in crashes)
+    nextCrash: 5 + Math.floor(Math.random() * 6),  // first RE crash in years 5-10
+    lastCrash: null,  // RE: { year, pct }
+    nextEqCrash: 7 + Math.floor(Math.random() * 9),  // first EQ crash in years 7-15
+    lastEqCrash: null,  // EQ: { year, pct }
+    nextPcCrash: 10 + Math.floor(Math.random() * 11),  // first PC multiple compression in 10-20 yrs
+    pcMultShock: 1,   // 0..1 — holdco valuation multiple shock; recovers over time
+    lastPcCrash: null, // PC: { year, pct }
+    debtEq: 0, debtRe: 0, debtPc: 0,
+    ltvEq: 0,  ltvRe: 0,  ltvPc: 0,
+    rate: RATE_START,
+    rateTarget: RATE_START,
+    nextRegime: 5 + Math.floor(Math.random() * 10),  // first regime shift in 5-15 yrs
+    lastMarginCall: null,  // { year, soldValue }
+    priority: ['pc', 'eq', 're'],  // asset deploy order, click-to-promote
+    autoBorrow: false,
+    view: 'invest',               // 'invest' | 'consume'
+    consumeFilter: 'all',         // 'all' | 'M' | 'F'
+    consumption: {},              // id -> { value } (current mark)
+    nwHistory: [{ year: 0, nw: START_CASH }],
+    bust: false,
+    bustYear: null,
+    autoEq: false, eqHurdle: 10,
+    autoRe: false, reHurdle: 10,
+    autoPc: false, pcHurdle: 15,  // auto-deploy cash into Holding each year, highest-margin first
+    tab: 'eq',
+    sort: { eq: { col: 'yield', dir: -1 }, re: { col: 'yieldPct', dir: -1 }, pc: { col: 'marginPct', dir: -1 } },
+  };
+}
+
+function ensurePrices() {
+  for (const e of EQUITIES) {
+    if (state.eqPrice[e.id] == null) state.eqPrice[e.id] = e.price;
+    if (state.eqDps[e.id] == null) state.eqDps[e.id] = e.price * e.yield / 100;
+  }
+  for (const p of PROPERTIES) {
+    if (state.rePrice[p.id] == null) state.rePrice[p.id] = p.price;
+    if (state.reRent[p.id] == null) state.reRent[p.id] = p.price * p.yieldPct / 100;
+    const maxRent = RE_VALUE_CAP * p.yieldPct / 100;
+    if (state.rePrice[p.id] > RE_VALUE_CAP) state.rePrice[p.id] = RE_VALUE_CAP;
+    if (state.reRent[p.id] > maxRent) state.reRent[p.id] = maxRent;
+  }
+  for (const id in state.re) {
+    const p = PROPERTIES.find(x => x.id === id);
+    if (!p) continue;
+    const maxRent = RE_VALUE_CAP * p.yieldPct / 100;
+    if (state.re[id].annual > maxRent) state.re[id].annual = maxRent;
+  }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const s = JSON.parse(raw);
+    const d = defaultState();
+    return Object.assign(d, s, { sort: Object.assign(d.sort, s.sort || {}) });
+  } catch { return defaultState(); }
+}
+
+const eqCur = (e) => state.eqPrice[e.id];
+const reCur = (p) => state.rePrice[p.id];
+
+function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+function resetGame() {
+  if (!confirm('Reset the game? All progress will be lost.')) return;
+  state = defaultState();
+  ensurePrices();
+  saveState();
+  render();
+}
+
+let state = loadState();
+ensurePrices();
+
+// ------- Income calc -------
+function eqTaxRate(ticker, shares) {
+  const def = EQUITIES.find(x => x.id === ticker);
+  if (!def) return DIV_TAX;
+  return (shares / def.shares) >= DIV_TAX_FREE_PCT ? 0 : DIV_TAX;
+}
+function eqIncome() {
+  let sum = 0;
+  for (const t in state.eq) {
+    const shares = state.eq[t];
+    if (state.eqDps[t] != null) sum += shares * state.eqDps[t] * (1 - eqTaxRate(t, shares));
+  }
+  return sum;
+}
+
+// Regime-switching interest rate — rough fit to US Fed-funds 1954-2026.
+// Rolls a new regime target every 5-20 years; each year the rate reverts toward it with noise.
+// Per-pool default: force-liquidation when pool LTV crosses 75%.
+// Each pool only affects its own assets — RE crash doesn't trigger equity margin call.
+function marginCallCheck() {
+  // Equity securities margin
+  const eqDebt = state.debtEq;
+  if (eqDebt > 0) {
+    let eqVal = eqCollateral();
+    if (eqVal > 0 && eqDebt > EQ_MARGIN_CALL_LTV * eqVal) {
+      const startEq = eqVal;
+      let safety = 150;
+      while (safety-- > 0 && state.debtEq > EQ_MARGIN_CALL_LTV * eqVal && eqVal > 0) {
+        let largest = null;
+        for (const t in state.eq) {
+          const val = state.eq[t] * state.eqPrice[t];
+          if (!largest || val > largest.val) largest = { t, val };
+        }
+        if (!largest) break;
+        const proceeds = largest.val;
+        const payDown = Math.min(proceeds, state.debtEq);
+        state.cash += (proceeds - payDown);
+        state.debtEq -= payDown;
+        delete state.eq[largest.t];
+        eqVal -= proceeds;
+      }
+      state.lastMarginCall = { year: state.year, soldValue: startEq - eqVal };
+    }
+  }
+
+  // Real-estate mortgage foreclosure
+  if (state.debtRe > 0) {
+    let reVal = reCollateralVal();
+    let safety = 150;
+    while (safety-- > 0 && state.debtRe > EQ_MARGIN_CALL_LTV * reVal && reVal > 0) {
+      let largest = null;
+      for (const id in state.re) {
+        const val = state.re[id].annual / 0.07;
+        if (!largest || val > largest.val) largest = { id, val };
+      }
+      if (!largest) break;
+      const proceeds = largest.val;
+      const payDown = Math.min(proceeds, state.debtRe);
+      state.cash += (proceeds - payDown);
+      state.debtRe -= payDown;
+      delete state.re[largest.id];
+      reVal -= proceeds;
+    }
+  }
+
+  // Holding-company default
+  if (state.debtPc > 0) {
+    let pcVal = pcCollateralVal();
+    let safety = 150;
+    while (safety-- > 0 && state.debtPc > EQ_MARGIN_CALL_LTV * pcVal && pcVal > 0) {
+      let largest = null;
+      for (const id in state.pc) {
+        const val = state.pc[id].annual / 0.15;
+        if (!largest || val > largest.val) largest = { id, val };
+      }
+      if (!largest) break;
+      const proceeds = largest.val;
+      const payDown = Math.min(proceeds, state.debtPc);
+      state.cash += (proceeds - payDown);
+      state.debtPc -= payDown;
+      delete state.pc[largest.id];
+      pcVal = pcCollateralVal();  // holdingValue multiple changes with FCF, recompute
+    }
+  }
+}
+
+function updateRate() {
+  if (state.year >= state.nextRegime) {
+    const roll = Math.random();
+    if      (roll < 0.20) state.rateTarget = 0.5;   // ZIRP   (~20% of time)
+    else if (roll < 0.50) state.rateTarget = 3.0;   // low    (~30%)
+    else if (roll < 0.80) state.rateTarget = 5.0;   // normal (~30%)
+    else if (roll < 0.95) state.rateTarget = 9.0;   // high   (~15%)
+    else                  state.rateTarget = 16.0;  // Volcker spike (~5%)
+    state.nextRegime = state.year + 5 + Math.floor(Math.random() * 15);
+  }
+  let r = state.rate + RATE_REVERSION * (state.rateTarget - state.rate) + gauss() * RATE_NOISE;
+  if (r < RATE_FLOOR) r = RATE_FLOOR;
+  if (r > RATE_CEIL) r = RATE_CEIL;
+  state.rate = r;
+}
+
+function gauss() {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+function eqSigma(yieldPct) { return 8 + Math.max(0, 5 - yieldPct); }  // per-stock vol
+
+// Per-pool collateral. Each asset class only secures its own debt.
+function eqCollateral() {
+  let v = 0;
+  for (const t in state.eq) if (state.eqPrice[t] != null) v += state.eq[t] * state.eqPrice[t];
+  return v;
+}
+function reCollateralVal() {
+  let v = 0;
+  for (const id in state.re) v += state.re[id].annual / 0.07;
+  return v;
+}
+const pcCollateralVal = () => holdingValue();
+
+const POOLS = ['Eq', 'Re', 'Pc'];
+const POOL_LABEL = { Eq: 'Equities (securities margin)', Re: 'Real estate (mortgage)', Pc: 'Holding (corporate loan)' };
+const POOL_DOT   = { Eq: 'pe', Re: 're', Pc: 'pc' };
+const POOL_COLLATERAL = { Eq: eqCollateral, Re: reCollateralVal, Pc: pcCollateralVal };
+
+function assetValue() { return eqCollateral() + reCollateralVal() + pcCollateralVal(); }
+function totalDebt() { return state.debtEq + state.debtRe + state.debtPc; }
+
+// Max new borrow for one pool, in one shot.
+// Eq pool: cash counts as collateral (brokerage account) → closed-form with recursion
+// RE / PC pools: asset-only, no cash cross-collateral.
+function maxBorrowPool(pool) {
+  const ltv = state['ltv' + pool];
+  if (ltv >= 1) return 0;
+  const collateral = POOL_COLLATERAL[pool]();
+  const debt = state['debt' + pool];
+  if (pool === 'Eq') {
+    const total = state.cash + collateral;
+    return Math.max(0, (ltv * total - debt) / (1 - ltv));
+  }
+  return Math.max(0, ltv * collateral - debt);
+}
+function maxBorrow() { return POOLS.reduce((s, p) => s + maxBorrowPool(p), 0); }
+function reIncome() { let s = 0; for (const id in state.re) s += state.re[id].annual; return s; }
+function pcIncome() { let s = 0; for (const id in state.pc) s += state.pc[id].annual; return s; }
+
+// RE upgrade multiplier: 3x -> 20x based on annual rent size
+function upgradeMultiplier(annual) {
+  const m = Math.max(annual, 1);
+  const t = Math.min(Math.max((Math.log10(m) - 2) / 5, 0), 1); // 100 -> 3x,  10m+ -> 20x
+  return 3 + 17 * t;
+}
+function upgradeCost(annual) { return Math.round(annual * upgradeMultiplier(annual)); }
+
+// Implied market value for a (grown) property, by own-yield cap rate
+function reValue(p, annual) { return annual / (p.yieldPct / 100); }
+
+// Holdco valuation multiple: 3× to 20× on total free cashflow (log scale, $100k → $1B+).
+// Reflects diversification + scale premium of a larger holding.
+function holdingMultiple(totalFcf) {
+  if (totalFcf <= 0) return 3;
+  const t = Math.min(Math.max((Math.log10(totalFcf) - 5) / 4, 0), 1);
+  return 3 + 17 * t;
+}
+function pcTotalFcf() {
+  let s = 0;
+  for (const id in state.pc) s += state.pc[id].annual;
+  return s;
+}
+function holdingValue() {
+  const fcf = pcTotalFcf();
+  const shock = state.pcMultShock != null ? state.pcMultShock : 1;
+  return fcf * holdingMultiple(fcf) * shock;
+}
+
+// Private-company helpers
+function eqMarketCap(e) { return state.eqPrice[e.id] * e.shares; }
+function pcSize(annual) { return annual / 0.15; }  // ~15% earnings yield => enterprise value
+// Grow multiplier: 1× at $100k size → 20× at $1T size (log scale over 7 decades)
+function pcGrowMultiplier(size) {
+  const t = Math.min(Math.max((Math.log10(size) - 5) / (Math.log10(PC_SIZE_CAP) - 5), 0), 1);
+  return 1 + 19 * t;
+}
+function pcGrowCost(annual) {
+  return Math.round(annual * pcGrowMultiplier(pcSize(annual)));
+}
+
+// ------- Tabs -------
+const TABS = [
+  { id: 'eq', label: 'Public Equities', dot: 'pe', count: () => EQUITIES.length },
+  { id: 're', label: 'Real Estate',     dot: 're', count: () => PROPERTIES.length },
+  { id: 'pc', label: 'Private (Holding)', dot: 'pc', count: () => COMPANIES.length },
+];
+
+function renderTabs() {
+  const el = document.getElementById('tabs');
+  el.innerHTML = '';
+  for (const t of TABS) {
+    const b = document.createElement('button');
+    b.className = 'tab' + (state.tab === t.id ? ' active' : '');
+    b.innerHTML = `<span class="dot-s ${t.dot}"></span>${t.label}<span class="count">${t.count()}</span>`;
+    b.onclick = () => { state.tab = t.id; saveState(); render(); };
+    el.appendChild(b);
+  }
+  const dbtn = document.getElementById('deploy-btn');
+  if (dbtn) {
+    const map = {
+      eq: { label: 'Deploy max → Equities',    fn: maxDeployEq },
+      re: { label: 'Deploy max → Real Estate', fn: maxDeployRe },
+      pc: { label: 'Deploy max → Holding',     fn: maxDeployPc },
+    };
+    const m = map[state.tab];
+    if (m) { dbtn.style.display = ''; dbtn.textContent = m.label; dbtn.onclick = m.fn; }
+    else dbtn.style.display = 'none';
+  }
+  const autoWrap = document.getElementById('auto-pc-wrap');
+  const autoBox = document.getElementById('auto-pc');
+  const hurdleWrap = document.getElementById('hurdle-wrap');
+  const hurdleBox = document.getElementById('pc-hurdle');
+  const showControls = ['eq','re','pc'].includes(state.tab);
+  if (autoWrap && autoBox) {
+    autoWrap.style.display = showControls ? 'flex' : 'none';
+    autoBox.checked = !!getAuto();
+  }
+  if (hurdleWrap && hurdleBox) {
+    hurdleWrap.style.display = showControls ? 'flex' : 'none';
+    if (document.activeElement !== hurdleBox) hurdleBox.value = getHurdle();
+  }
+}
+
+function autoKey(tab) { return tab === 'eq' ? 'autoEq' : tab === 're' ? 'autoRe' : 'autoPc'; }
+function hurdleKey(tab) { return tab === 'eq' ? 'eqHurdle' : tab === 're' ? 'reHurdle' : 'pcHurdle'; }
+function getAuto() { return state[autoKey(state.tab)]; }
+function getHurdle() { return state[hurdleKey(state.tab)]; }
+
+function toggleAuto() {
+  state[autoKey(state.tab)] = document.getElementById('auto-pc').checked;
+  saveState();
+}
+function setHurdle() {
+  const v = parseFloat(document.getElementById('pc-hurdle').value);
+  state[hurdleKey(state.tab)] = isFinite(v) && v >= 0 ? v : 0;
+  saveState();
+  render();
+}
+
+// ------- Columns -------
+const COLS = {
+  eq: [
+    { k: 'ticker', label: 'Ticker', num: false },
+    { k: 'name', label: 'Name', num: false },
+    { k: 'sector', label: 'Sector', num: false },
+    { k: 'mcap', label: 'Mkt Cap', num: true },
+    { k: 'price', label: 'Price', num: true },
+    { k: 'yield', label: 'Yield', num: true },
+    { k: 'appr', label: 'Appr./yr', num: true },
+    { k: 'roi', label: 'ROI/yr', num: true },
+    { k: 'shares', label: 'Shares', num: true },
+    { k: 'tax', label: 'Tax', num: true },
+    { k: 'inc', label: 'Income/yr', num: true },
+    { k: 'act', label: '', num: false, noSort: true },
+  ],
+  re: [
+    { k: 'name', label: 'Property', num: false },
+    { k: 'city', label: 'City', num: false },
+    { k: 'type', label: 'Type', num: false },
+    { k: 'cost', label: 'Cost', num: true },
+    { k: 'yieldPct', label: 'Yield', num: true },
+    { k: 'appr', label: 'Appr./yr', num: true },
+    { k: 'roi', label: 'ROI/yr', num: true },
+    { k: 'level', label: 'Lvl', num: true },
+    { k: 'annual', label: 'Rent/yr', num: true },
+    { k: 'act', label: '', num: false, noSort: true },
+  ],
+  pc: [
+    { k: 'name', label: 'Company', num: false },
+    { k: 'industry', label: 'Industry', num: false },
+    { k: 'cost', label: 'Cost', num: true },
+    { k: 'roi', label: 'ROI/yr', num: true },
+    { k: 'marginPct', label: 'Margin', num: true },
+    { k: 'size', label: 'Size', num: true },
+    { k: 'level', label: 'Lvl', num: true },
+    { k: 'annual', label: 'EBITDA/yr', num: true },
+    { k: 'act', label: '', num: false, noSort: true },
+  ],
+};
+
+function sortRows(tab, rows) {
+  const { col, dir } = state.sort[tab];
+  return rows.slice().sort((a, b) => {
+    const av = a[col], bv = b[col];
+    if (av == null && bv == null) return 0;
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    if (typeof av === 'number') return (av - bv) * dir;
+    return String(av).localeCompare(String(bv)) * dir;
+  });
+}
+
+function renderHead() {
+  const cols = COLS[state.tab];
+  const sort = state.sort[state.tab];
+  const thead = document.getElementById('thead');
+  thead.innerHTML = '<tr>' + cols.map(c => {
+    const sorted = sort.col === c.k ? ' sorted' : '';
+    const arrow = sort.col === c.k ? (sort.dir === 1 ? '↑' : '↓') : '↕';
+    return `<th class="${c.num ? 'num' : ''}${sorted}" data-k="${c.k}" data-sortable="${c.noSort ? 0 : 1}">${c.label}<span class="arrow">${c.noSort ? '' : arrow}</span></th>`;
+  }).join('') + '</tr>';
+  thead.querySelectorAll('th').forEach(th => {
+    if (th.dataset.sortable === '0') return;
+    th.onclick = () => {
+      const k = th.dataset.k;
+      const s = state.sort[state.tab];
+      if (s.col === k) s.dir *= -1; else { s.col = k; s.dir = (COLS[state.tab].find(c => c.k === k).num ? -1 : 1); }
+      saveState();
+      renderHead();
+      renderBody();
+    };
+  });
+}
+
+function renderBody() {
+  const tbody = document.getElementById('tbody');
+  const tab = state.tab;
+
+  if (tab === 'eq') {
+    const rows = EQUITIES.map(e => {
+      const shares = state.eq[e.id] || 0;
+      const price = eqCur(e);
+      const mcap = eqMarketCap(e);
+      const dps = state.eqDps[e.id];
+      const curYield = dps / price * 100;
+      const float = e.shares;
+      const available = float - shares;
+      const ownership = shares / float;
+      const taxRate = ownership >= DIV_TAX_FREE_PCT ? 0 : DIV_TAX;
+      const inc = shares * dps * (1 - taxRate);
+      const appr = eqDrift(e);
+      const tax = shares > 0 ? taxRate * 100 : null;
+      const netYield = curYield * (1 - taxRate);
+      const roi = netYield + appr;
+      return { ...e, price, shares, inc, appr, mcap, curYield, float, available, ownership, tax, roi };
+    });
+    const sorted = sortRows('eq', rows);
+    tbody.innerHTML = sorted.map(e => `
+      <tr class="${e.shares > 0 ? 'owned' : ''}">
+        <td><span class="ticker">${e.ticker}</span></td>
+        <td><div class="name">${e.name}</div></td>
+        <td><span class="pill">${e.sector}</span></td>
+        <td class="num">${fmtCash(e.mcap)}</td>
+        <td class="num">${fmtCash(e.price)}</td>
+        <td class="num">${fmtPct(e.curYield)}</td>
+        <td class="num ${e.appr > 0 ? 'pos' : ''}">${fmtPct(e.appr)}</td>
+        <td class="num" style="${e.roi >= state.eqHurdle ? 'color:var(--green)' : ''}">${fmtPct(e.roi)}</td>
+        <td class="num">${e.shares > 0 ? `${fmtNum(e.shares)} <span style="color:var(--muted)">/ ${fmtNum(e.float)} (${(e.ownership*100).toFixed(1)} %)</span>` : `<span style="color:var(--muted)">${fmtNum(e.float)}</span>`}</td>
+        <td class="num" style="${e.tax === 0 ? 'color:var(--green)' : (e.tax === 25 ? 'color:var(--red)' : '')}">${e.tax == null ? '—' : fmtPct(e.tax)}</td>
+        <td class="num ${e.inc > 0 ? 'pos' : ''}">${e.inc > 0 ? fmtCash(e.inc) : '—'}</td>
+        <td class="actions">
+          <button class="b" data-eq-buy="${e.id}" data-qty="1" ${state.cash < e.price || e.available < 1 ? 'disabled' : ''}>+1</button>
+          <button class="b" data-eq-buy="${e.id}" data-qty="10" ${state.cash < e.price * 10 || e.available < 1 ? 'disabled' : ''}>+10</button>
+          <button class="b primary" data-eq-buy="${e.id}" data-qty="max" ${state.cash < e.price || e.available < 1 ? 'disabled' : ''}>Max</button>
+          ${e.shares > 0 ? `<button class="b sell" data-eq-sell="${e.id}">Sell</button>` : ''}
+        </td>
+      </tr>
+    `).join('');
+    tbody.querySelectorAll('[data-eq-buy]').forEach(btn => {
+      btn.onclick = () => buyEq(btn.dataset.eqBuy, btn.dataset.qty);
+    });
+    tbody.querySelectorAll('[data-eq-sell]').forEach(btn => {
+      btn.onclick = () => sellEq(btn.dataset.eqSell);
+    });
+  }
+
+  if (tab === 're') {
+    const rows = PROPERTIES.map(p => {
+      const owned = state.re[p.id];
+      const market = reCur(p);
+      const annual = owned ? owned.annual : state.reRent[p.id];
+      const level = owned ? owned.level : 0;
+      const value = owned ? reValue(p, annual) : market;
+      const atCap = owned && value >= RE_VALUE_CAP;
+      const cost = owned ? upgradeCost(annual) : market;
+      const appr = reAppr(p.yieldPct);
+      // For owned: effective yield stays at base (rent and value grow together).
+      // For unowned: current yield = sticky rent / current market price (spikes in crashes).
+      const curYield = owned ? p.yieldPct : (annual / market * 100);
+      const roi = atCap ? 0 : (owned
+        ? (annual * (UPGRADE_MULT - 1)) / cost * 100
+        : curYield + appr);
+      return { ...p, level, annual, cost, appr, roi, value, atCap, yieldPct: curYield };
+    });
+    const sorted = sortRows('re', rows);
+    tbody.innerHTML = sorted.map(p => {
+      const owned = p.level > 0;
+      const label = owned ? (p.atCap ? 'Max value' : 'Grow') : 'Buy';
+      const disabled = p.atCap || state.cash < p.cost;
+      return `
+      <tr class="${owned ? 'owned' : ''}">
+        <td><div class="name">${p.name}</div></td>
+        <td>${p.city}</td>
+        <td><span class="pill">${p.type}</span></td>
+        <td class="num">${p.atCap ? '—' : fmtCash(p.cost)}</td>
+        <td class="num">${fmtPct(p.yieldPct)}</td>
+        <td class="num ${p.appr > 0 ? 'pos' : ''}">${fmtPct(p.appr)}</td>
+        <td class="num" style="${!p.atCap && p.roi >= state.reHurdle ? 'color:var(--green)' : ''}">${p.atCap ? '—' : fmtPct(p.roi)}</td>
+        <td class="num">${owned ? p.level : '—'}</td>
+        <td class="num ${owned ? 'pos' : ''}">${fmtCash(p.annual)}</td>
+        <td class="actions">
+          <button class="b primary" data-re-act="${p.id}" ${disabled ? 'disabled' : ''}>
+            ${label}${p.atCap ? '' : ' <span style="opacity:0.7">' + fmtCash(p.cost) + '</span>'}
+          </button>
+          ${owned ? `<button class="b sell" data-re-sell="${p.id}" title="${fmtCash(state.rePrice[p.id])}">Sell</button>` : ''}
+        </td>
+      </tr>`;
+    }).join('');
+    tbody.querySelectorAll('[data-re-act]').forEach(btn => {
+      btn.onclick = () => actRe(btn.dataset.reAct);
+    });
+    tbody.querySelectorAll('[data-re-sell]').forEach(btn => {
+      btn.onclick = () => sellRe(btn.dataset.reSell);
+    });
+  }
+
+  if (tab === 'pc') {
+    const rows = COMPANIES.map(c => {
+      const owned = state.pc[c.id];
+      const annual = owned ? owned.annual : c.annual;
+      const level = owned ? owned.level : 0;
+      const size = owned ? pcSize(annual) : pcSize(c.annual);
+      const atCap = owned && size >= PC_SIZE_CAP;
+      const cost = owned ? pcGrowCost(annual) : c.price;
+      const gain = owned ? annual * (UPGRADE_MULT - 1) : c.annual;
+      const roi = atCap ? 0 : (gain / cost * 100);
+      return { ...c, level, annual, cost, size, atCap, roi };
+    });
+    // Always keep owned on top of the list, then fill with top-sorted unowned
+    const PC_ROW_LIMIT = 200;
+    const ownedRows = rows.filter(r => r.level > 0);
+    const unownedRows = rows.filter(r => r.level === 0);
+    const sortedUnowned = sortRows('pc', unownedRows).slice(0, Math.max(0, PC_ROW_LIMIT - ownedRows.length));
+    const sortedOwned = sortRows('pc', ownedRows);
+    const sorted = [...sortedOwned, ...sortedUnowned];
+    tbody.innerHTML = sorted.map(c => {
+      const owned = c.level > 0;
+      const label = owned ? (c.atCap ? 'Max size' : 'Grow') : 'Acquire';
+      const disabled = c.atCap || state.cash < c.cost;
+      return `
+      <tr class="${owned ? 'owned' : ''}">
+        <td><div class="name">${c.name}</div></td>
+        <td><span class="pill">${c.industry}</span></td>
+        <td class="num">${c.atCap ? '—' : fmtCash(c.cost)}</td>
+        <td class="num" style="${!c.atCap && c.roi >= (state.pcHurdle||0) ? 'color:var(--green)' : ''}">${c.atCap ? '—' : fmtPct(c.roi)}</td>
+        <td class="num">${fmtPct(c.marginPct)}</td>
+        <td class="num">${fmtCash(c.size)}</td>
+        <td class="num">${owned ? c.level : '—'}</td>
+        <td class="num ${owned ? 'pos' : ''}">${fmtCash(c.annual)}</td>
+        <td class="actions">
+          <button class="b primary" data-pc-act="${c.id}" ${disabled ? 'disabled' : ''}>
+            ${label}${c.atCap ? '' : ' <span style="opacity:0.7">' + fmtCash(c.cost) + '</span>'}
+          </button>
+          ${owned ? `<button class="b sell" data-pc-sell="${c.id}" title="${fmtCash(c.size)}">Exit</button>` : ''}
+        </td>
+      </tr>`;
+    }).join('');
+    tbody.querySelectorAll('[data-pc-act]').forEach(btn => {
+      btn.onclick = () => actPc(btn.dataset.pcAct);
+    });
+    tbody.querySelectorAll('[data-pc-sell]').forEach(btn => {
+      btn.onclick = () => sellPc(btn.dataset.pcSell);
+    });
+  }
+}
+
+function netWorth() {
+  return state.cash + assetValue() + consumptionValue() - totalDebt();
+}
+
+function renderStrip() {
+  document.getElementById('cash').textContent = fmtCash(state.cash);
+  const ipe = eqIncome(), ire = reIncome(), ipc = pcIncome();
+  const gross = ipe + ire + ipc;
+  const interest = totalDebt() * state.rate / 100;
+  document.getElementById('annual').textContent = fmtCash(gross - interest);
+  const intNote = document.getElementById('interest-note');
+  if (intNote) {
+    intNote.textContent = interest > 0
+      ? `gross ${fmtCash(gross)}  −  interest ${fmtCash(interest)}`
+      : (gross > 0 ? `gross ${fmtCash(gross)}` : '');
+  }
+  document.getElementById('inc-pe').textContent = fmtCash(ipe);
+  const eqVal = document.getElementById('eq-val');
+  if (eqVal) {
+    const v = eqCollateral();
+    eqVal.textContent = v > 0 ? `val ${fmtCash(v)}` : '';
+  }
+  const pen = document.getElementById('pe-note');
+  if (pen) {
+    const parts = [];
+    if (state.lastEqCrash) parts.push(`crash y+${state.lastEqCrash.year}  −${state.lastEqCrash.pct} %`);
+    if (state.lastMarginCall) parts.push(`margin call y+${state.lastMarginCall.year} · liquidated ${fmtCash(state.lastMarginCall.soldValue)}`);
+    pen.textContent = parts.join(' · ');
+  }
+  document.getElementById('inc-re').textContent = fmtCash(ire);
+  const reVal = document.getElementById('re-val');
+  if (reVal) {
+    const v = reCollateralVal();
+    reVal.textContent = v > 0 ? `val ${fmtCash(v)}` : '';
+  }
+  const cn = document.getElementById('crash-note');
+  cn.textContent = state.lastCrash ? `crash y+${state.lastCrash.year}  −${state.lastCrash.pct} %` : '';
+  document.getElementById('inc-pc').textContent = fmtCash(ipc);
+  const pcVal = document.getElementById('pc-val');
+  if (pcVal) {
+    const fcf = pcTotalFcf();
+    if (fcf > 0) {
+      const mult = holdingMultiple(fcf);
+      const shock = state.pcMultShock != null ? state.pcMultShock : 1;
+      const effMult = mult * shock;
+      let txt = `val ${fmtCash(fcf * effMult)}  (${effMult.toFixed(1)}×)`;
+      if (shock < 0.99) txt += `  compressed ${Math.round((1 - shock) * 100)} %`;
+      pcVal.textContent = txt;
+    } else {
+      pcVal.textContent = '';
+    }
+  }
+  document.getElementById('year').textContent = '+' + state.year + ' / ' + (state.mode === 'inf' ? '∞' : LIMIT_YEARS);
+  for (const pool of POOLS) {
+    const debtEl = document.getElementById('debt-' + pool);
+    const maxEl = document.getElementById('max-' + pool);
+    const slider = document.getElementById('ltv-slider-' + pool);
+    const ltvVal = document.getElementById('ltv-val-' + pool);
+    if (debtEl) debtEl.textContent = fmtCash(state['debt' + pool]);
+    if (maxEl) maxEl.textContent = fmtCash(maxBorrowPool(pool));
+    if (slider && document.activeElement !== slider) slider.value = Math.round(state['ltv' + pool] * 100);
+    if (ltvVal) ltvVal.textContent = `${Math.round(state['ltv' + pool] * 100)} %`;
+  }
+  const trend = state.rate < state.rateTarget - 0.3 ? ' ↑' : (state.rate > state.rateTarget + 0.3 ? ' ↓' : '');
+  document.getElementById('rates').textContent = `${state.rate.toFixed(1)} %${trend} · ${INFLATION_PCT.toFixed(1)} %`;
+
+  for (const b of document.querySelectorAll('#mode button')) {
+    b.classList.toggle('on', b.dataset.mode === state.mode);
+  }
+
+  const done = isDone();
+  const btn = document.getElementById('pause-btn');
+  if (done) {
+    btn.textContent = state.bust ? 'Bust' : 'Done';
+    btn.className = 'pause done';
+    btn.disabled = true;
+  } else if (!state.started) {
+    btn.textContent = 'Start';
+    btn.className = 'pause paused';
+    btn.disabled = false;
+  } else {
+    btn.textContent = state.paused ? 'Resume' : 'Pause';
+    btn.className = 'pause' + (state.paused ? ' paused' : '');
+    btn.disabled = false;
+  }
+
+  const banner = document.getElementById('final-banner');
+  if (done) {
+    banner.style.display = 'flex';
+    document.getElementById('final-nw').textContent = fmtCash(netWorth());
+    if (state.bust) {
+      banner.classList.add('bust');
+      banner.querySelector('.label').textContent = `Bankrupt at year ${state.bustYear} — final net worth`;
+    } else {
+      banner.classList.remove('bust');
+      banner.querySelector('.label').textContent = state.year + ' years allocated — final net worth';
+    }
+  } else {
+    banner.style.display = 'none';
+    banner.classList.remove('bust');
+  }
+}
+
+function togglePause() {
+  if (isDone()) return;
+  if (!state.started) { state.started = true; state.paused = false; }
+  else state.paused = !state.paused;
+  saveState();
+  renderStrip();
+}
+
+function setMode(m) {
+  state.mode = m;
+  saveState();
+  renderStrip();
+}
+
+function renderStrategy() {
+  const el = document.getElementById('prio-list');
+  if (!el) return;
+  const names = { pc: 'Holding', eq: 'Equities', re: 'Real Estate' };
+  const dotClass = { pc: 'pc', eq: 'pe', re: 're' };
+  el.innerHTML = state.priority.map((id, i) => {
+    const auto = state[autoKey(id)];
+    return `<button class="prio-item" data-prio="${id}">
+      <span class="rank mono">${i + 1}</span>
+      <span class="dot-s ${dotClass[id]}"></span>
+      <span>${names[id]}</span>
+      ${auto ? '<span class="pill-auto">auto</span>' : ''}
+    </button>`;
+  }).join('');
+  el.querySelectorAll('[data-prio]').forEach(btn => {
+    btn.onclick = () => promotePriority(btn.dataset.prio);
+  });
+  const ab = document.getElementById('auto-borrow-input');
+  if (ab) ab.checked = !!state.autoBorrow;
+}
+
+function promotePriority(id) {
+  const idx = state.priority.indexOf(id);
+  if (idx <= 0) return;
+  [state.priority[idx - 1], state.priority[idx]] = [state.priority[idx], state.priority[idx - 1]];
+  saveState();
+  render();
+}
+function toggleAutoBorrow() {
+  state.autoBorrow = document.getElementById('auto-borrow-input').checked;
+  saveState();
+}
+function buyConsumption(id) {
+  const def = CONSUMPTION.find(x => x.id === id);
+  if (!def) return;
+  if (state.cash < def.price) return;
+  if (state.consumption[id]) return;  // one-of-a-kind
+  state.cash -= def.price;
+  state.consumption[id] = { value: def.price };
+  saveState(); render();
+}
+function sellConsumption(id) {
+  const owned = state.consumption[id];
+  if (!owned) return;
+  state.cash += owned.value;
+  delete state.consumption[id];
+  saveState(); render();
+}
+
+function setConsumeFilter(g) {
+  state.consumeFilter = g;
+  saveState();
+  render();
+}
+
+function renderConsumption() {
+  if (state.view !== 'consume') return;
+  const tbody = document.getElementById('consume-tbody');
+  if (!tbody) return;
+  const f = state.consumeFilter || 'all';
+  for (const b of document.querySelectorAll('#consume-filter button')) {
+    b.classList.toggle('on', b.dataset.g === f);
+  }
+  const filtered = CONSUMPTION.filter(c => f === 'all' || c.gender === f || c.gender === 'both');
+  const rows = filtered.map(c => {
+    const owned = state.consumption[c.id];
+    return { ...c, owned: !!owned, currentValue: owned ? owned.value : 0 };
+  });
+  rows.sort((a, b) => (b.owned - a.owned) || (b.price - a.price));
+  tbody.innerHTML = rows.map(c => {
+    const canBuy = !c.owned && state.cash >= c.price;
+    const apprClass = c.appr > 0 ? 'pos' : (c.appr < 0 ? '' : '');
+    const apprColor = c.appr > 0 ? 'color:var(--green)' : (c.appr < 0 ? 'color:var(--red)' : '');
+    return `
+      <tr class="${c.owned ? 'owned' : ''}">
+        <td><div class="name">${c.name}</div></td>
+        <td><span class="pill">${c.cat}</span>${c.gender === 'both' ? '' : `<span class="pill" style="margin-left:4px;color:${c.gender === 'M' ? 'var(--pe)' : 'var(--pc)'};border-color:currentColor;">${c.gender === 'M' ? '♂' : '♀'}</span>`}</td>
+        <td class="num">${fmtCash(c.price)}</td>
+        <td class="num">${c.maint.toFixed(1)} %</td>
+        <td class="num" style="${apprColor}">${c.appr > 0 ? '+' : ''}${c.appr.toFixed(0)} %</td>
+        <td class="num ${c.owned ? 'pos' : ''}">${c.owned ? fmtCash(c.currentValue) : '—'}</td>
+        <td class="actions">
+          ${c.owned
+            ? `<button class="b sell" data-c-sell="${c.id}">Sell</button>`
+            : `<button class="b primary" data-c-buy="${c.id}" ${canBuy ? '' : 'disabled'}>Buy</button>`}
+        </td>
+      </tr>`;
+  }).join('');
+  tbody.querySelectorAll('[data-c-buy]').forEach(b => b.onclick = () => buyConsumption(b.dataset.cBuy));
+  tbody.querySelectorAll('[data-c-sell]').forEach(b => b.onclick = () => sellConsumption(b.dataset.cSell));
+
+  const summary = document.getElementById('consume-summary');
+  if (summary) {
+    const spent = CONSUMPTION.reduce((s, c) => s + (state.consumption[c.id] ? c.price : 0), 0);
+    const held = consumptionValue();
+    const owned = Object.keys(state.consumption).length;
+    summary.textContent = `${owned} items · spent ${fmtCash(spent)} · current value ${fmtCash(held)}`;
+  }
+}
+
+function setView(v) {
+  state.view = v;
+  saveState();
+  render();
+}
+
+function applyViewVisibility() {
+  const investOnly = ['pool-ledger', 'tabs', 'main-table'];
+  const show = state.view === 'invest';
+  document.getElementById('pool-ledger').style.display = show ? '' : 'none';
+  const strategy = document.querySelector('.strategy');
+  if (strategy) strategy.style.display = show ? '' : 'none';
+  const tabsRow = document.querySelector('.tabs')?.parentElement;
+  if (tabsRow) tabsRow.style.display = show ? '' : 'none';
+  const tableWrap = document.querySelector('.table-wrap');
+  if (tableWrap) tableWrap.style.display = show ? '' : 'none';
+  const consume = document.getElementById('consume-section');
+  if (consume) consume.style.display = show ? 'none' : '';
+  for (const b of document.querySelectorAll('#view-switch button')) {
+    b.classList.toggle('on', b.dataset.view === state.view);
+  }
+}
+
+function consumptionValue() {
+  let v = 0;
+  for (const id in state.consumption) v += state.consumption[id].value || 0;
+  return v;
+}
+
+function renderChart() {
+  const svg = document.getElementById('chart');
+  if (!svg) return;
+  const h = state.nwHistory || [];
+  if (h.length < 2) { svg.innerHTML = ''; return; }
+
+  const W = 1000, H = 250, padL = 70, padR = 10, padT = 15, padB = 25;
+  const minYear = h[0].year;
+  const maxYear = h[h.length - 1].year || 1;
+  const nwVals = h.map(p => p.nw);
+  const dataMin = Math.min(...nwVals);
+  const dataMax = Math.max(...nwVals);
+  const minNw = Math.min(0, dataMin);
+  const maxNw = Math.max(dataMax, 1);
+  const xSpan = Math.max(1, maxYear - minYear);
+  const ySpan = Math.max(1, maxNw - minNw);
+  const xScale = y => padL + ((y - minYear) / xSpan) * (W - padL - padR);
+  const yScale = n => padT + (1 - (n - minNw) / ySpan) * (H - padT - padB);
+
+  let d = '';
+  h.forEach((p, i) => {
+    const x = xScale(p.year), y = yScale(p.nw);
+    d += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
+  });
+
+  const yTicks = [];
+  for (let i = 0; i <= 4; i++) {
+    const val = minNw + ySpan * i / 4;
+    yTicks.push({ y: yScale(val), label: fmtCash(val) });
+  }
+  const xTicks = [];
+  for (let i = 0; i <= 5; i++) {
+    const year = minYear + Math.round(xSpan * i / 5);
+    xTicks.push({ x: xScale(year), label: 'y+' + year });
+  }
+  const zeroY = (minNw < 0 && maxNw > 0) ? yScale(0) : null;
+
+  svg.innerHTML = `
+    ${yTicks.map(t => `
+      <line x1="${padL}" x2="${W - padR}" y1="${t.y}" y2="${t.y}" stroke="#262626" stroke-width="1"/>
+      <text x="${padL - 8}" y="${t.y + 3}" text-anchor="end" font-family="JetBrains Mono" font-size="10" fill="#8a8a8a">${t.label}</text>
+    `).join('')}
+    ${xTicks.map(t => `
+      <text x="${t.x}" y="${H - 8}" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#8a8a8a">${t.label}</text>
+    `).join('')}
+    ${zeroY !== null ? `<line x1="${padL}" x2="${W - padR}" y1="${zeroY}" y2="${zeroY}" stroke="#f87171" stroke-width="1" stroke-dasharray="3,3"/>` : ''}
+    <path d="${d}" fill="none" stroke="#4ade80" stroke-width="2" vector-effect="non-scaling-stroke"/>
+  `;
+
+  const curr = document.getElementById('chart-current');
+  const cagrEl = document.getElementById('chart-cagr');
+  const last = h[h.length - 1].nw;
+  if (curr) {
+    curr.textContent = fmtCash(last);
+    curr.style.color = last >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+  if (cagrEl) {
+    const start = h[0].nw;
+    const years = h[h.length - 1].year - h[0].year;
+    if (years > 0 && start > 0 && last > 0) {
+      const cagr = (Math.pow(last / start, 1 / years) - 1) * 100;
+      cagrEl.textContent = (cagr >= 0 ? '+' : '') + cagr.toFixed(1) + ' %';
+      cagrEl.style.color = cagr >= 0 ? 'var(--green)' : 'var(--red)';
+    } else {
+      cagrEl.textContent = '—';
+      cagrEl.style.color = 'var(--muted)';
+    }
+  }
+}
+
+function render() {
+  renderStrip();
+  renderStrategy();
+  renderTabs();
+  renderHead();
+  renderBody();
+  applyViewVisibility();
+  renderConsumption();
+  renderChart();
+}
+
+// ------- Actions -------
+function buyEq(ticker, qty) {
+  const def = EQUITIES.find(x => x.id === ticker);
+  if (!def) return;
+  const price = eqCur(def);
+  const owned = state.eq[ticker] || 0;
+  const available = def.shares - owned;
+  if (available <= 0) return;
+  let n;
+  if (qty === 'max') n = Math.floor(state.cash / price);
+  else n = parseInt(qty, 10);
+  n = Math.min(n, available);
+  if (!n || n < 1) return;
+  const cost = n * price;
+  if (state.cash < cost) return;
+  state.cash -= cost;
+  state.eq[ticker] = owned + n;
+  saveState();
+  render();
+}
+
+function actRe(id) {
+  const def = PROPERTIES.find(x => x.id === id);
+  if (!def) return;
+  const owned = state.re[id];
+  if (!owned) {
+    const price = reCur(def);
+    if (state.cash < price) return;
+    state.cash -= price;
+    state.re[id] = { level: 1, annual: state.reRent[id] };
+  } else {
+    if (reValue(def, owned.annual) >= RE_VALUE_CAP) return;
+    const cost = upgradeCost(owned.annual);
+    if (state.cash < cost) return;
+    state.cash -= cost;
+    owned.level += 1;
+    owned.annual = owned.annual * UPGRADE_MULT;
+    const maxAnnual = RE_VALUE_CAP * def.yieldPct / 100;
+    if (owned.annual > maxAnnual) owned.annual = maxAnnual;
+  }
+  saveState();
+  render();
+}
+
+function sellEq(ticker) {
+  const shares = state.eq[ticker] || 0;
+  if (shares <= 0) return;
+  const price = state.eqPrice[ticker];
+  state.cash += shares * price;
+  delete state.eq[ticker];
+  saveState();
+  render();
+}
+
+function sellRe(id) {
+  if (!state.re[id]) return;
+  state.cash += state.rePrice[id];  // market value
+  delete state.re[id];
+  saveState();
+  render();
+}
+
+// Expected total return (% / yr) for an equity at current ownership/price.
+function eqROI(e) {
+  const shares = state.eq[e.id] || 0;
+  const price = state.eqPrice[e.id];
+  const dps = state.eqDps[e.id];
+  const taxRate = shares / e.shares >= DIV_TAX_FREE_PCT ? 0 : DIV_TAX;
+  const netYield = (dps / price * 100) * (1 - taxRate);
+  const appr = eqDrift(e);
+  return netYield + appr;
+}
+
+function bestEqAction(respectHurdle) {
+  let best = null;
+  const hurdle = respectHurdle ? state.eqHurdle : 0;
+  for (const e of EQUITIES) {
+    const owned = state.eq[e.id] || 0;
+    const available = e.shares - owned;
+    if (available < 1) continue;
+    const price = state.eqPrice[e.id];
+    if (price > state.cash) continue;
+    const roi = eqROI(e);
+    if (roi < hurdle) continue;
+    if (!best || roi > best.roi) best = { e, price, available, roi };
+  }
+  return best;
+}
+
+function deployEqInner(respectHurdle) {
+  let changed = false;
+  let safety = 20000;
+  while (safety-- > 0) {
+    const best = bestEqAction(respectHurdle);
+    if (!best) break;
+    const n = Math.min(best.available, Math.floor(state.cash / best.price));
+    if (n < 1) break;
+    state.cash -= n * best.price;
+    state.eq[best.e.id] = (state.eq[best.e.id] || 0) + n;
+    changed = true;
+  }
+  return changed;
+}
+
+function flashDeploy(msg, ok) {
+  const el = document.getElementById('deploy-flash');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = ok ? 'var(--green)' : 'var(--red)';
+  el.style.opacity = '1';
+  clearTimeout(flashDeploy._t);
+  flashDeploy._t = setTimeout(() => { el.style.opacity = '0'; }, 1800);
+}
+
+// Deploy respects the hurdle. Set hurdle to 0 to force-deploy everything.
+function maxDeployEq() {
+  const before = state.cash;
+  const did = deployEqInner(true);
+  if (did) { saveState(); render(); flashDeploy('✓ deployed ' + fmtCash(before - state.cash), true); }
+  else flashDeploy('no deals above hurdle', false);
+}
+
+// Real-estate ROI helpers
+function reActionInfo(p) {
+  const owned = state.re[p.id];
+  if (owned) {
+    if (reValue(p, owned.annual) >= RE_VALUE_CAP) return null;
+    const cost = upgradeCost(owned.annual);
+    const gain = owned.annual * (UPGRADE_MULT - 1);
+    return { type: 'grow', cost, gain, roi: gain / cost * 100 };
+  }
+  const cost = reCur(p);
+  const rent = state.reRent[p.id];
+  const curYield = rent / cost * 100;
+  return { type: 'buy', cost, gain: rent, roi: curYield + reAppr(p.yieldPct) };
+}
+
+function bestReAction(respectHurdle) {
+  let best = null;
+  const hurdle = respectHurdle ? state.reHurdle : 0;
+  for (const p of PROPERTIES) {
+    const info = reActionInfo(p);
+    if (!info) continue;
+    if (info.cost > state.cash) continue;
+    if (info.roi < hurdle) continue;
+    if (!best || info.roi > best.roi) best = { p, ...info };
+  }
+  return best;
+}
+
+function executeReAction(best) {
+  if (best.type === 'buy') {
+    state.cash -= best.cost;
+    state.re[best.p.id] = { level: 1, annual: state.reRent[best.p.id] };
+  } else {
+    const owned = state.re[best.p.id];
+    state.cash -= best.cost;
+    owned.level += 1;
+    owned.annual *= UPGRADE_MULT;
+  }
+}
+
+function deployReInner(respectHurdle) {
+  let changed = false;
+  let safety = 20000;
+  while (safety-- > 0) {
+    const best = bestReAction(respectHurdle);
+    if (!best) break;
+    executeReAction(best);
+    changed = true;
+  }
+  return changed;
+}
+
+function maxDeployRe() {
+  const before = state.cash;
+  const did = deployReInner(true);
+  if (did) { saveState(); render(); flashDeploy('✓ deployed ' + fmtCash(before - state.cash), true); }
+  else flashDeploy('no deals above hurdle', false);
+}
+
+// ROI/yr for an action on company c (null if unavailable)
+function pcActionInfo(c) {
+  const owned = state.pc[c.id];
+  if (owned) {
+    if (pcSize(owned.annual) >= PC_SIZE_CAP) return null;
+    const cost = pcGrowCost(owned.annual);
+    const gain = owned.annual * (UPGRADE_MULT - 1);   // marginal EBITDA added
+    return { type: 'grow', cost, gain, roi: gain / cost * 100 };
+  }
+  return { type: 'acquire', cost: c.price, gain: c.annual, roi: c.annual / c.price * 100 };
+}
+
+// Pick best (highest ROI) affordable action. Optionally require ROI >= hurdle.
+function bestPcAction(respectHurdle) {
+  let best = null;
+  const hurdle = respectHurdle ? state.pcHurdle : 0;
+  for (const c of COMPANIES) {
+    const info = pcActionInfo(c);
+    if (!info) continue;
+    if (info.cost > state.cash) continue;
+    if (info.roi < hurdle) continue;
+    if (!best || info.roi > best.roi) best = { c, ...info };
+  }
+  return best;
+}
+
+function executePcAction(best) {
+  if (best.type === 'acquire') {
+    state.cash -= best.cost;
+    state.pc[best.c.id] = { level: 1, annual: best.c.annual };
+  } else {
+    const owned = state.pc[best.c.id];
+    state.cash -= best.cost;
+    owned.level += 1;
+    owned.annual *= UPGRADE_MULT;
+    if (pcSize(owned.annual) > PC_SIZE_CAP) owned.annual = PC_SIZE_CAP * 0.15;
+  }
+}
+
+function deployPcInner(respectHurdle) {
+  let changed = false;
+  let safety = 20000;
+  while (safety-- > 0) {
+    const best = bestPcAction(respectHurdle);
+    if (!best) break;
+    executePcAction(best);
+    changed = true;
+  }
+  return changed;
+}
+
+// Manual Deploy max — respects hurdle. Nothing meets it → cash stays in bank.
+function maxDeployPc() {
+  const before = state.cash;
+  const did = deployPcInner(true);
+  if (did) { saveState(); render(); flashDeploy('✓ deployed ' + fmtCash(before - state.cash), true); }
+  else flashDeploy('no deals above hurdle', false);
+}
+
+function sellPc(id) {
+  const owned = state.pc[id];
+  if (!owned) return;
+  state.cash += owned.annual / 0.15;  // enterprise value
+  delete state.pc[id];
+  saveState();
+  render();
+}
+
+function borrowPool(pool) {
+  const n = maxBorrowPool(pool);
+  if (n <= 0) return;
+  state.cash += n;
+  state['debt' + pool] += n;
+  saveState(); render();
+}
+function repayPool(pool) {
+  const n = Math.min(state.cash, state['debt' + pool]);
+  if (n <= 0) return;
+  state.cash -= n;
+  state['debt' + pool] -= n;
+  saveState(); render();
+}
+function setLtvPool(pool) {
+  const el = document.getElementById('ltv-slider-' + pool);
+  const v = parseInt(el.value, 10);
+  state['ltv' + pool] = Math.max(0, Math.min(80, v)) / 100;
+  saveState();
+  renderStrip();
+}
+
+function actPc(id) {
+  const def = COMPANIES.find(x => x.id === id);
+  if (!def) return;
+  const owned = state.pc[id];
+  if (!owned) {
+    if (state.cash < def.price) return;
+    state.cash -= def.price;
+    state.pc[id] = { level: 1, annual: def.annual };
+  } else {
+    if (pcSize(owned.annual) >= PC_SIZE_CAP) return;
+    const cost = pcGrowCost(owned.annual);
+    if (state.cash < cost) return;
+    state.cash -= cost;
+    owned.level += 1;
+    owned.annual = owned.annual * UPGRADE_MULT;
+    if (pcSize(owned.annual) > PC_SIZE_CAP) {
+      owned.annual = PC_SIZE_CAP * 0.15;  // clamp to cap
+    }
+  }
+  saveState();
+  render();
+}
+
+// ------- Tick: 1 second = 1 year -------
+const tickEl = document.getElementById('tick');
+setInterval(() => {
+  if (!state.started || state.paused || isDone()) return;
+
+  // Update interest rate for the new year (regime-switching, mean-reverting)
+  updateRate();
+
+  // Pay cashflows
+  state.cash += eqIncome() + reIncome() + pcIncome();
+
+  // Auto-borrow: top up every pool to its LTV ceiling each year, independent of auto-deploy
+  if (state.autoBorrow) {
+    for (const pool of POOLS) {
+      const n = maxBorrowPool(pool);
+      if (n > 0) { state.cash += n; state['debt' + pool] += n; }
+    }
+  }
+
+  // Auto-deploy in priority order (highest ROI per asset, gated by that asset's hurdle)
+  const deployers = { eq: deployEqInner, re: deployReInner, pc: deployPcInner };
+  for (const id of state.priority) {
+    if (state[autoKey(id)]) deployers[id](true);
+  }
+
+  // Debt: pay interest per pool from cash; shortfall compounds into that pool
+  for (const pool of POOLS) {
+    const debt = state['debt' + pool];
+    if (debt <= 0) continue;
+    const interest = debt * state.rate / 100;
+    if (state.cash >= interest) {
+      state.cash -= interest;
+    } else {
+      state['debt' + pool] += (interest - state.cash);
+      state.cash = 0;
+    }
+  }
+
+  state.year += 1;
+
+  // Equities: crash or (drift + noise), capped at $10T
+  const eqCrashYear = state.year >= state.nextEqCrash;
+  if (eqCrashYear) {
+    const pct = 0.3 + Math.random() * 0.2;  // 30-50% drop
+    for (const e of EQUITIES) {
+      state.eqPrice[e.id] *= (1 - pct);
+      if (state.eqPrice[e.id] < 1) state.eqPrice[e.id] = 1;
+    }
+    state.lastEqCrash = { year: state.year, pct: +(pct * 100).toFixed(0) };
+    state.nextEqCrash = state.year + 7 + Math.floor(Math.random() * 9);
+  } else {
+    for (const e of EQUITIES) {
+      const mcap = eqMarketCap(e);
+      const drift = eqDrift(e);
+      const retPct = drift + gauss() * eqSigma(e.yield);
+      let newPrice = state.eqPrice[e.id] * (1 + retPct / 100);
+      if (newPrice < 1) newPrice = 1;
+      state.eqPrice[e.id] = newPrice;
+    }
+    // Dividend-per-share grows with underlying earnings (sticky; not during crash)
+    for (const e of EQUITIES) {
+      state.eqDps[e.id] *= (1 + eqDrift(e) / 100);
+    }
+  }
+
+  // Dividend cuts: if yield gets too high (post-crash spike or distress), probability
+  // of a cut rises. Above 25% yield → certain cut. Resets dps so yield returns to 2-4%.
+  for (const e of EQUITIES) {
+    const price = state.eqPrice[e.id];
+    const dps = state.eqDps[e.id];
+    if (dps <= 0) continue;
+    const yld = dps / price * 100;
+    if (yld <= YIELD_CUT_FLOOR) continue;
+    const cutProb = Math.min(1, (yld - YIELD_CUT_FLOOR) / (YIELD_CUT_HARD - YIELD_CUT_FLOOR));
+    if (Math.random() < cutProb) {
+      const targetYield = 2 + Math.random() * 2;
+      state.eqDps[e.id] = price * targetYield / 100;
+    }
+  }
+
+  // Margin call: if debt / equity-value exceeds 75%, force-sell largest positions
+  // until the ratio is restored (or no equities remain).
+  marginCallCheck();
+
+  // Real estate: crash or appreciation
+  if (state.year >= state.nextCrash) {
+    const pct = 0.5 + Math.random() * 0.3;
+    for (const p of PROPERTIES) state.rePrice[p.id] *= (1 - pct);
+    state.lastCrash = { year: state.year, pct: +(pct * 100).toFixed(0) };
+    state.nextCrash = state.year + 5 + Math.floor(Math.random() * 6);
+  } else {
+    for (const p of PROPERTIES) {
+      const f = 1 + reAppr(p.yieldPct) / 100;
+      const maxRent = RE_VALUE_CAP * p.yieldPct / 100;
+      state.rePrice[p.id] = Math.min(state.rePrice[p.id] * f, RE_VALUE_CAP);
+      state.reRent[p.id] = Math.min(state.reRent[p.id] * f, maxRent);
+      if (state.re[p.id]) {
+        state.re[p.id].annual = Math.min(state.re[p.id].annual * f, maxRent);
+      }
+    }
+  }
+
+  // Private holding: multiple compression every 10-20 yrs (less dramatic than listed markets)
+  if (state.year >= state.nextPcCrash) {
+    const pct = 0.15 + Math.random() * 0.15;  // 15-30% drop in valuation multiple
+    state.pcMultShock = Math.max(0.3, state.pcMultShock * (1 - pct));
+    state.lastPcCrash = { year: state.year, pct: +(pct * 100).toFixed(0) };
+    state.nextPcCrash = state.year + 10 + Math.floor(Math.random() * 11);
+  } else if (state.pcMultShock < 1) {
+    // slow recovery (illiquid, takes years)
+    state.pcMultShock = Math.min(1, state.pcMultShock + 0.05);
+  }
+
+  // Consumption: maintenance drag + value drift.
+  // Positive-appr items decay toward inflation as value grows (no asset outpaces GDP forever).
+  // Depreciating items keep depreciating (yachts/planes don't magically recover).
+  for (const id in state.consumption) {
+    const def = CONSUMPTION.find(x => x.id === id);
+    if (!def) continue;
+    const owned = state.consumption[id];
+    const maint = owned.value * def.maint / 100;
+    state.cash -= maint;
+    let drift = def.appr;
+    if (drift > 0) {
+      // Decay from $100M (full appr) → $1T (inflation only)
+      const decay = 1 - Math.min(1, Math.max(0, (Math.log10(Math.max(owned.value, 1)) - 8) / 4));
+      drift = def.appr * decay + INFLATION_PCT * (1 - decay);
+    }
+    owned.value *= (1 + drift / 100);
+    if (owned.value < 1) delete state.consumption[id];  // experiences fully consumed
+  }
+
+  // Inflation on nominal cash
+  state.cash *= (1 - INFLATION_PCT / 100);
+
+  // Insolvency: debt exceeds cash + total asset value → bust
+  if (!state.bust && netWorth() < 0) {
+    state.bust = true;
+    state.bustYear = state.year;
+  }
+
+  // Append to net-worth history (keep up to ~1000 points, decimate if exceeded)
+  state.nwHistory = state.nwHistory || [];
+  state.nwHistory.push({ year: state.year, nw: netWorth() });
+  if (state.nwHistory.length > 1000) {
+    state.nwHistory = state.nwHistory.filter((_, i) => i % 2 === 0);
+  }
+
+  saveState();
+  renderStrip();
+  renderBody();
+  renderChart();
+  tickEl.classList.add('on');
+  setTimeout(() => tickEl.classList.remove('on'), 140);
+}, TICK_MS);
+
+document.querySelectorAll('#mode button').forEach(b => {
+  b.onclick = () => setMode(b.dataset.mode);
+});
+
+render();
+</script>
+</body>
+</html>
