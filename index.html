@@ -683,8 +683,9 @@ function genCompanies() {
     { count: 1,   min: 1e9, max: 1e10 },   // 1 giant: $1B-$10B
     { count: 10,  min: 1e8, max: 1e9  },   // 10 large: $100M-$1B
     { count: 50,  min: 1e7, max: 1e8  },   // 50 mid: $10M-$100M
-    { count: 200, min: 1e6, max: 1e7  },   // 200 small-mid: $1M-$10M
-    { count: 739, min: 1e5, max: 1e6  },   // 739 small: $100k-$1M
+    { count: 189, min: 1e6, max: 1e7  },   // 189 small-mid: $1M-$10M
+    { count: 675, min: 1e5, max: 1e6  },   // 675 small: $100k-$1M
+    { count: 75,  min: 1e4, max: 1e5  },   // 75 micro: $10k-$100k (bootstrap plays, side hustles)
   ];
   const out = [];
   for (const b of buckets) {
@@ -853,7 +854,7 @@ const PC_SIZE_CAP = 1e12;  // $1T hard cap on private-company enterprise value (
 const RE_VALUE_CAP = 1e9;  // $1B hard cap on single-property market value (trophy skyscraper)
 
 // ------- State -------
-const STORAGE_KEY = 'allocator-v9';
+const STORAGE_KEY = 'allocator-v10';
 const START_CASH = 100000;
 const UPGRADE_MULT = 1.5;
 const TICK_MS = 1000;
