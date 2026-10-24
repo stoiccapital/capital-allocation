@@ -36,26 +36,23 @@ export default {
         ts: Date.now(),
       };
 
-      // Names are unique (case-insensitive). Keep best net worth per name.
+      // Every submission is a new entry. If the submitted name is already in use
+      // (case-insensitive), append a 4-char random suffix so every entry is unique.
       const scores = (await env.SCORES.get('top', 'json')) || [];
-      const key = entry.name.toLowerCase();
-      const existingIdx = scores.findIndex(s => (s.name || '').toLowerCase() === key);
-      let kept = true;
-      if (existingIdx >= 0) {
-        if (entry.nw > scores[existingIdx].nw) {
-          scores[existingIdx] = entry;  // better score — replace
-        } else {
-          kept = false;  // existing is better — ignore new submission
-        }
-      } else {
-        scores.push(entry);
-      }
+      const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      const randSuffix = () => Array.from({ length: 4 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
+      const taken = (n) => scores.some(s => (s.name || '').toLowerCase() === n.toLowerCase());
+      let finalName = entry.name;
+      let guard = 0;
+      while (taken(finalName) && guard++ < 20) finalName = entry.name + '_' + randSuffix();
+      entry.name = finalName;
+      scores.push(entry);
       scores.sort((a, b) => b.nw - a.nw);
       const top = scores.slice(0, 100);
       await env.SCORES.put('top', JSON.stringify(top));
 
-      const rank = top.findIndex(s => (s.name || '').toLowerCase() === key) + 1;
-      return json({ rank, inTop100: rank > 0, top10: top.slice(0, 10), kept }, cors);
+      const rank = top.findIndex(s => s.ts === entry.ts) + 1;
+      return json({ rank, inTop100: rank > 0, top10: top.slice(0, 10), finalName }, cors);
     }
 
     return new Response('Capital Allocation Scores API', { headers: cors });

@@ -2381,9 +2381,11 @@ async function submitScore() {
     try { localStorage.setItem(PLAYER_NAME_KEY, name); } catch {}
     try { localStorage.setItem(LAST_SUBMIT_KEY, String(Date.now())); } catch {}
 
+    const nameUsed = data.finalName || name;
+    if (nameEl) nameEl.value = nameUsed;
     const rankMsg = data.rank && data.rank <= 100
-      ? `You're ranked #${data.rank} globally.`
-      : 'Score saved.';
+      ? `Saved as "${nameUsed}" — ranked #${data.rank} globally.`
+      : `Saved as "${nameUsed}".`;
     statusEl.textContent = rankMsg;
     statusEl.style.color = 'var(--green)';
     await loadLeaderboard();
