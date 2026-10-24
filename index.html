@@ -353,6 +353,16 @@
   .final-banner.bust .nw { color: var(--red); }
   .final-banner.bust .label { color: var(--red); }
 
+  /* Leaderboard */
+  table.lb { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.lb th { text-align: left; padding: 6px 8px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--border); }
+  table.lb th.num { text-align: right; }
+  table.lb td { padding: 7px 8px; border-bottom: 1px solid var(--border); }
+  table.lb td.num { text-align: right; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+  table.lb tr.me td { background: rgba(74, 222, 128, 0.08); }
+  table.lb .rank { font-family: 'JetBrains Mono', monospace; color: var(--muted); font-weight: 600; }
+  table.lb .bust { color: var(--red); font-size: 10px; margin-left: 6px; }
+
   /* ======= How to play intro ======= */
   .intro-overlay {
     position: fixed; inset: 0;
@@ -773,8 +783,9 @@
       <div class="title">Money Game</div>
       <div class="subtitle">Every second = one year of your life</div>
     </div>
-    <div style="display:flex;align-items:center;">
+    <div style="display:flex;align-items:center;gap:8px;">
       <button class="help-btn" onclick="showIntro()" title="How to play">?</button>
+      <button class="reset" onclick="openLeaderboard()" title="View leaderboard">🏆 Leaderboard</button>
       <button class="reset" onclick="resetGame()">Reset</button>
     </div>
   </header>
@@ -823,6 +834,18 @@
       </div>
 
       <button class="intro-start" onclick="dismissIntro()">Let's play</button>
+    </div>
+  </div>
+
+  <div id="leaderboard-overlay" class="intro-overlay" style="display:none;">
+    <div class="intro-card" style="max-width:620px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h1 style="margin:0;">🏆 Global leaderboard</h1>
+        <button class="help-btn" onclick="closeLeaderboard()" title="Close">×</button>
+      </div>
+      <div class="intro-sub">Top 100 best net worths across all players.</div>
+      <div id="lb-overlay-list"></div>
+      <button class="intro-start" onclick="closeLeaderboard()" style="margin-top:16px;">Close</button>
     </div>
   </div>
 
@@ -957,12 +980,23 @@
 
   </div><!-- /advanced-content -->
 
-  <div id="final-banner" class="final-banner" style="display:none;margin-top:0;margin-bottom:24px;">
-    <div>
-      <div class="label">100 years played — total money at the end</div>
-      <div class="nw mono" id="final-nw">$ 0</div>
+  <div id="final-banner" class="final-banner" style="display:none;margin-top:0;margin-bottom:24px;flex-direction:column;align-items:stretch;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div>
+        <div class="label">100 years played — total money at the end</div>
+        <div class="nw mono" id="final-nw">$ 0</div>
+      </div>
+      <button class="reset" onclick="resetGame()" style="padding: 10px 18px; font-size: 12px;">Try again</button>
     </div>
-    <button class="reset" onclick="resetGame()" style="padding: 10px 18px; font-size: 12px;">Try again</button>
+    <div id="leaderboard-wrap" style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px;">
+      <div class="label" style="margin-bottom:8px;">Global leaderboard</div>
+      <div id="lb-submit" style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+        <input id="player-name" placeholder="Your name" maxlength="24" style="background:var(--surface-2);border:1px solid var(--border-2);color:var(--text);padding:10px 12px;border-radius:6px;font-family:inherit;font-size:13px;flex:1;min-width:140px;" />
+        <button class="b primary" onclick="submitScore()" style="padding:10px 16px;">Change my name</button>
+      </div>
+      <div id="lb-status" style="font-size:11px;color:var(--muted);min-height:14px;margin-bottom:8px;"></div>
+      <div id="leaderboard-list"></div>
+    </div>
   </div>
 
   <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--border);">
@@ -1413,6 +1447,7 @@ function defaultState() {
     nwHistory: [{ year: 0, nw: START_CASH }],
     bust: false,
     bustYear: null,
+    scoreSubmitted: false,
     autoEq: false, eqHurdle: 10,
     autoRe: false, reHurdle: 10,
     autoPc: false, pcHurdle: 15,  // auto-deploy cash into Holding each year, highest-margin first
@@ -2053,6 +2088,7 @@ function renderStrip() {
 
   const banner = document.getElementById('final-banner');
   if (done) {
+    const wasHidden = banner.style.display === 'none' || banner.style.display === '';
     banner.style.display = 'flex';
     document.getElementById('final-nw').textContent = fmtCash(netWorth());
     if (state.bust) {
@@ -2061,6 +2097,14 @@ function renderStrip() {
     } else {
       banner.classList.remove('bust');
       banner.querySelector('.label').textContent = state.year + ' years played — total money at the end';
+    }
+    // Hydrate leaderboard once when the banner first opens, auto-submit score
+    if (wasHidden) {
+      try {
+        const n = localStorage.getItem(PLAYER_NAME_KEY);
+        if (n) document.getElementById('player-name').value = n;
+      } catch {}
+      autoSubmitScore();  // auto-saves + loads leaderboard
     }
   } else {
     banner.style.display = 'none';
@@ -2134,6 +2178,157 @@ function toggleAdvanced() {
   const open = !content.classList.contains('open');
   content.classList.toggle('open', open);
   toggle.classList.toggle('open', open);
+}
+
+// ======= Global leaderboard =======
+// After deploying the Cloudflare Worker (see worker/README.md),
+// paste the public URL here, e.g. 'https://allocator-scores.yourname.workers.dev'
+const SCORES_API = 'https://allocator-scores.yourname.workers.dev';
+const PLAYER_NAME_KEY = 'allocator-player-name';
+const LAST_SUBMIT_KEY = 'allocator-last-submit';
+
+function escHTML(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderLeaderboard(scores, myTs) {
+  const el = document.getElementById('leaderboard-list');
+  if (!el) return;
+  if (!scores || !scores.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;">No scores yet. Be the first.</div>'; return; }
+  el.innerHTML = `
+    <table class="lb">
+      <thead><tr><th>#</th><th>Player</th><th class="num">Final money</th><th class="num">Growth/yr</th></tr></thead>
+      <tbody>
+        ${scores.slice(0, 10).map((s, i) => `
+          <tr class="${s.ts === myTs ? 'me' : ''}">
+            <td class="rank">${i + 1}</td>
+            <td>${escHTML(s.name)}${s.bust ? '<span class="bust">broke</span>' : ''}</td>
+            <td class="num">${fmtCash(s.nw)}</td>
+            <td class="num">${(s.cagr || 0).toFixed(1)} %</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+async function loadLeaderboard() {
+  try {
+    const res = await fetch(SCORES_API + '/scores');
+    if (!res.ok) throw new Error('fetch failed');
+    const scores = await res.json();
+    renderLeaderboard(scores);
+  } catch (e) {
+    document.getElementById('leaderboard-list').innerHTML = '<div style="color:var(--muted);font-size:12px;">Leaderboard offline — configure SCORES_API in index.html.</div>';
+  }
+}
+
+async function openLeaderboard() {
+  document.getElementById('leaderboard-overlay').style.display = 'flex';
+  const el = document.getElementById('lb-overlay-list');
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px;">Loading…</div>';
+  try {
+    const res = await fetch(SCORES_API + '/scores');
+    if (!res.ok) throw new Error('fetch failed');
+    const scores = await res.json();
+    if (!scores || !scores.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px;">No scores yet. Finish a game and submit yours to be the first.</div>';
+      return;
+    }
+    el.innerHTML = `
+      <div style="max-height:60vh;overflow-y:auto;">
+      <table class="lb">
+        <thead><tr><th>#</th><th>Player</th><th class="num">Final money</th><th class="num">Growth/yr</th></tr></thead>
+        <tbody>
+          ${scores.slice(0, 100).map((s, i) => `
+            <tr>
+              <td class="rank">${i + 1}</td>
+              <td>${escHTML(s.name)}${s.bust ? '<span class="bust">broke</span>' : ''}</td>
+              <td class="num">${fmtCash(s.nw)}</td>
+              <td class="num">${(s.cagr || 0).toFixed(1)} %</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      </div>
+    `;
+  } catch (e) {
+    el.innerHTML = '<div style="color:var(--red);font-size:13px;">Leaderboard offline — the API URL in index.html is not configured yet. See worker/README.md to deploy the Cloudflare Worker.</div>';
+  }
+}
+function closeLeaderboard() {
+  document.getElementById('leaderboard-overlay').style.display = 'none';
+}
+
+function generateAutoName() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // skip ambiguous O/0/I/1
+  let suffix = '';
+  for (let i = 0; i < 4; i++) suffix += chars[Math.floor(Math.random() * chars.length)];
+  return 'Allocator_' + suffix;
+}
+
+async function autoSubmitScore() {
+  if (state.scoreSubmitted) return;
+
+  // Pick name: field value → saved name → auto-generated
+  const nameEl = document.getElementById('player-name');
+  let name = (nameEl && nameEl.value.trim()) || '';
+  if (!name) {
+    try { name = localStorage.getItem(PLAYER_NAME_KEY) || ''; } catch {}
+  }
+  if (!name) {
+    name = generateAutoName();
+  }
+  if (nameEl) nameEl.value = name;
+  try { localStorage.setItem(PLAYER_NAME_KEY, name); } catch {}
+
+  state.scoreSubmitted = true;
+  saveState();
+
+  await submitScore();
+}
+
+async function submitScore() {
+  const nameEl = document.getElementById('player-name');
+  const statusEl = document.getElementById('lb-status');
+  const name = (nameEl.value || '').trim();
+  if (!name) { statusEl.textContent = 'Enter your name first.'; statusEl.style.color = 'var(--red)'; return; }
+  statusEl.textContent = 'Submitting…'; statusEl.style.color = 'var(--muted)';
+
+  const h = state.nwHistory || [];
+  const last = h[h.length - 1] || { nw: netWorth() };
+  const first = h[0] || { nw: START_CASH };
+  const years = state.year - (first.year || 0);
+  const cagr = years > 0 && first.nw > 0 && last.nw > 0
+    ? (Math.pow(last.nw / first.nw, 1 / years) - 1) * 100 : 0;
+
+  try {
+    const res = await fetch(SCORES_API + '/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        nw: netWorth(),
+        cagr,
+        bust: !!state.bust,
+        year: state.year,
+      }),
+    });
+    if (!res.ok) throw new Error('submit failed');
+    const data = await res.json();
+    try { localStorage.setItem(PLAYER_NAME_KEY, name); } catch {}
+    try { localStorage.setItem(LAST_SUBMIT_KEY, String(Date.now())); } catch {}
+
+    const rankMsg = data.rank && data.rank <= 100
+      ? `You're ranked #${data.rank} globally.`
+      : 'Score saved.';
+    statusEl.textContent = rankMsg;
+    statusEl.style.color = 'var(--green)';
+    await loadLeaderboard();
+  } catch (e) {
+    statusEl.textContent = 'Could not submit (offline or API not configured).';
+    statusEl.style.color = 'var(--red)';
+  }
 }
 
 const INTRO_SEEN_KEY = 'allocator-intro-seen';

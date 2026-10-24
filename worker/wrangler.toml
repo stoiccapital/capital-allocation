@@ -1,0 +1,8 @@
+name = "allocator-scores"
+main = "worker.js"
+compatibility_date = "2024-10-01"
+
+# Run `wrangler kv namespace create SCORES` and paste the ID here:
+[[kv_namespaces]]
+binding = "SCORES"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
