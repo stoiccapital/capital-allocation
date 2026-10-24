@@ -1492,6 +1492,7 @@ function defaultState() {
     bust: false,
     bustYear: null,
     scoreSubmitted: false,
+    scoreTs: null,  // timestamp of this run's leaderboard entry — used for renaming
     autoEq: false, eqHurdle: 10,
     autoRe: false, reHurdle: 10,
     autoPc: false, pcHurdle: 15,  // auto-deploy cash into Holding each year, highest-margin first
@@ -2355,8 +2356,33 @@ async function submitScore() {
   const statusEl = document.getElementById('lb-status');
   const name = (nameEl.value || '').trim();
   if (!name) { statusEl.textContent = 'Enter your name first.'; statusEl.style.color = 'var(--red)'; return; }
-  statusEl.textContent = 'Submitting…'; statusEl.style.color = 'var(--muted)';
+  statusEl.textContent = 'Saving…'; statusEl.style.color = 'var(--muted)';
 
+  // If this run already has an entry on the leaderboard, rename it instead of creating a new one.
+  if (state.scoreTs) {
+    try {
+      const res = await fetch(SCORES_API + '/rename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ts: state.scoreTs, newName: name }),
+      });
+      if (!res.ok) throw new Error('rename failed');
+      const data = await res.json();
+      const nameUsed = data.finalName || name;
+      if (nameEl) nameEl.value = nameUsed;
+      try { localStorage.setItem(PLAYER_NAME_KEY, nameUsed); } catch {}
+      statusEl.textContent = `Name updated to "${nameUsed}".`;
+      statusEl.style.color = 'var(--green)';
+      await loadLeaderboard();
+      fetchTopPlayer();
+    } catch (e) {
+      statusEl.textContent = 'Could not rename.';
+      statusEl.style.color = 'var(--red)';
+    }
+    return;
+  }
+
+  // First time submitting this run — create a new entry.
   const h = state.nwHistory || [];
   const last = h[h.length - 1] || { nw: netWorth() };
   const first = h[0] || { nw: START_CASH };
@@ -2383,6 +2409,14 @@ async function submitScore() {
 
     const nameUsed = data.finalName || name;
     if (nameEl) nameEl.value = nameUsed;
+
+    // Remember this run's entry so the rename endpoint can update it later.
+    const myEntry = (data.top10 || []).find(s => s.name === nameUsed);
+    if (myEntry && myEntry.ts) {
+      state.scoreTs = myEntry.ts;
+      saveState();
+    }
+
     const rankMsg = data.rank && data.rank <= 100
       ? `Saved as "${nameUsed}" — ranked #${data.rank} globally.`
       : `Saved as "${nameUsed}".`;
