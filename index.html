@@ -363,6 +363,41 @@
   table.lb .rank { font-family: 'JetBrains Mono', monospace; color: var(--muted); font-weight: 600; }
   table.lb .bust { color: var(--red); font-size: 10px; margin-left: 6px; }
 
+  /* Current #1 banner */
+  .top-player-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid #fbbf24;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    flex-wrap: wrap;
+  }
+  .top-player-bar .k {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .top-player-bar .name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .top-player-bar .stat {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .top-player-bar .sep {
+    color: var(--border-2);
+  }
+
   /* ======= How to play intro ======= */
   .intro-overlay {
     position: fixed; inset: 0;
@@ -895,6 +930,15 @@
         <div class="tick-dot" id="tick"></div>
       </div>
     </div>
+  </div>
+
+  <div id="top-player-bar" class="top-player-bar" style="display:none;">
+    <span class="k">🏆 #1 allocator</span>
+    <span class="name" id="top-player-name">—</span>
+    <span class="sep">·</span>
+    <span class="stat"><span class="k">Money</span><span id="top-player-nw">—</span></span>
+    <span class="sep">·</span>
+    <span class="stat"><span class="k">Growth/yr</span><span id="top-player-cagr">—</span></span>
   </div>
 
   <div class="chart-wrap">
@@ -2212,6 +2256,24 @@ function renderLeaderboard(scores, myTs) {
   `;
 }
 
+async function fetchTopPlayer() {
+  const bar = document.getElementById('top-player-bar');
+  if (!bar) return;
+  try {
+    const res = await fetch(SCORES_API + '/scores');
+    if (!res.ok) throw new Error('fetch failed');
+    const scores = await res.json();
+    const top = scores && scores[0];
+    if (!top) { bar.style.display = 'none'; return; }
+    document.getElementById('top-player-name').textContent = top.name;
+    document.getElementById('top-player-nw').textContent = fmtCash(top.nw);
+    document.getElementById('top-player-cagr').textContent = (top.cagr || 0).toFixed(1) + ' %';
+    bar.style.display = 'flex';
+  } catch (e) {
+    bar.style.display = 'none';
+  }
+}
+
 async function loadLeaderboard() {
   try {
     const res = await fetch(SCORES_API + '/scores');
@@ -2325,6 +2387,7 @@ async function submitScore() {
     statusEl.textContent = rankMsg;
     statusEl.style.color = 'var(--green)';
     await loadLeaderboard();
+    fetchTopPlayer();
   } catch (e) {
     statusEl.textContent = 'Could not submit (offline or API not configured).';
     statusEl.style.color = 'var(--red)';
@@ -3011,6 +3074,9 @@ document.querySelectorAll('#speed button').forEach(b => {
 
 render();
 maybeShowIntro();
+fetchTopPlayer();
+// refresh every 60s so the banner stays current across sessions
+setInterval(fetchTopPlayer, 60000);
 </script>
 </body>
 </html>

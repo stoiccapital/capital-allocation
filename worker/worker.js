@@ -36,14 +36,26 @@ export default {
         ts: Date.now(),
       };
 
+      // Names are unique (case-insensitive). Keep best net worth per name.
       const scores = (await env.SCORES.get('top', 'json')) || [];
-      scores.push(entry);
+      const key = entry.name.toLowerCase();
+      const existingIdx = scores.findIndex(s => (s.name || '').toLowerCase() === key);
+      let kept = true;
+      if (existingIdx >= 0) {
+        if (entry.nw > scores[existingIdx].nw) {
+          scores[existingIdx] = entry;  // better score — replace
+        } else {
+          kept = false;  // existing is better — ignore new submission
+        }
+      } else {
+        scores.push(entry);
+      }
       scores.sort((a, b) => b.nw - a.nw);
       const top = scores.slice(0, 100);
       await env.SCORES.put('top', JSON.stringify(top));
 
-      const rank = top.findIndex(s => s.ts === entry.ts) + 1;
-      return json({ rank, inTop100: rank > 0, top10: top.slice(0, 10) }, cors);
+      const rank = top.findIndex(s => (s.name || '').toLowerCase() === key) + 1;
+      return json({ rank, inTop100: rank > 0, top10: top.slice(0, 10), kept }, cors);
     }
 
     return new Response('Capital Allocation Scores API', { headers: cors });
